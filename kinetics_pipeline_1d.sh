@@ -13,7 +13,8 @@
 #WEST=west_i200_crawled.h5
 #WDIR=/Users/darian/bigfiles/multi_west
 #WEST=multi_2kod.h5
-WDIR=/Users/darian/github/wedap/wedap/data
+#WDIR=/Users/darian/github/wedap/wedap/data
+WDIR=/home/dty7/we_data
 #WEST=west_c2.h5
 #WEST=west_c2x.h5
 WEST=west_c2x_4b.h5
