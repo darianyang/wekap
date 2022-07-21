@@ -186,7 +186,7 @@ units = "rate"
 
 ### get rates for multiple state definitions (WE c2x 4b)
 final_rates = []
-for angle in range(58, 64, 2):
+for angle in range(48, 66, 2):
     rates = plot_rate(f"conWEx_4b/conWEx_c2_4b_{angle}", label=f"> {angle}°", ax=ax, state=state, units=units)
     # add 2 item list: angle | final rate value
     final_rates.append([angle, rates[-1]])
@@ -227,10 +227,10 @@ fig.tight_layout()
 #plt.savefig("WE_con_20-100_rates.png", dpi=300, transparent=True)
 
 # plot the rates at various state definitions
-# final_rates = np.array(final_rates)
-# ax2 = fig.add_subplot(426)
-# ax2.plot(final_rates[:,0], final_rates[:,1], color="k")
-# ax2.set_xlabel("Angle State Definition", fontsize=11, labelpad=4)
-# plt.yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
+final_rates = np.array(final_rates)
+ax2 = fig.add_subplot(426)
+ax2.plot(final_rates[:,0], final_rates[:,1], color="k")
+ax2.set_xlabel("Angle State Definition", fontsize=11, labelpad=4)
+plt.yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
 
 plt.show()
