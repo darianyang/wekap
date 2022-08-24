@@ -1,7 +1,11 @@
 #!/bin/bash
 # run multiple kinetics analysis pipelines
 
-for ANGLE in {46..56..2} ; do
-    bash kinetics_pipeline_1d.sh $ANGLE
-    wait
+SYSTEMS=(v00 v01 v02 threshv00)
+
+for SYS in ${SYSTEMS[@]} ; do 
+    for ANGLE in {56..68..1} ; do
+        bash kinetics_pipeline_1d.sh $ANGLE $SYS
+        wait
+    done
 done

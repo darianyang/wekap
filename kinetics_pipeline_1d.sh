@@ -17,10 +17,14 @@
 WDIR=/home/dty7/we_data
 #WEST=west_c2.h5
 #WEST=west_c2x.h5
-WEST=west_c2x_4b.h5
 AUX_A="1_75_39_c2"
 #AUX_A="rms_bb_xtal" # > 3.4, 3.5, 3.6
-SCHEME="conWEx_4b/conWEx_c2_4b_$1" 
+
+TS_DEF=$1
+SYSTEM=$2
+WEST=1a43_c2/west_${SYSTEM}.h5
+
+SCHEME="1a43_c2_we/4b_${TS_DEF}_${SYSTEM}" 
 #SCHEME="v02_2kod_lt32C2" 
 
 # make scheme dir and fill with current pipeline run file
@@ -34,7 +38,7 @@ cat << EOF > BINS
 bins:
     type: RectilinearBinMapper
     # add buffer region: strict starting state definition
-    boundaries: [[0.0, 30.0, 40.0, $1.0, 66.0, 'inf']]
+    boundaries: [[0.0, 30.0, 50.0, ${TS_DEF}.0, 'inf']]
     #boundaries: [[0.0, 2.8, 3.6, 5.0, 'inf']]
 EOF
 cat << EOF > STATES
@@ -46,7 +50,7 @@ states:
 
   - label: b
     coords:
-      - [63]
+      - [65]
 EOF
 
 # create module.py file to process 1D or 2D scheme
