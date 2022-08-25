@@ -36,15 +36,55 @@ The structure of these datasets is as follows:
     of tau.
 """
 
-from cProfile import label
-from typing import final
 import numpy as np
 import matplotlib.pyplot as plt
 import h5py
 
 plt.style.use("/Users/darian/github/wedap/wedap/styles/default.mplstyle")
 
-def plot_rate(scheme, tau=10**-10, state=1, label=None, units="rate", ax=None):
+# TODO: gotta convert to a class object
+
+def extract_rate(scheme, tau=10**-10, state=1):
+    """
+    Get the raw rate array from one direct.h5 file.
+    """
+    # read in direct.h5 file
+    h5 = h5py.File(f"{scheme}/direct.h5", "r")
+
+    # flux evolution dataset from cumulative evolution mode:
+    # When calculating time evolution of rate estimates, 
+    # ``cumulative`` evaluates rates over windows starting with --start-iter and 
+    # getting progressively wider to --stop-iter by steps of --step-iter.
+    fluxes = np.array(h5["target_flux_evolution"])
+
+    # conditional fluxes are macrostate to macrostate
+    # 2 dimensions: [(0 -> 0, 0 -> 1), 
+    #                (1 -> 0, 1 -> 1)] 
+    # I want 0 -> 1
+    #fluxes = np.array(h5["conditional_flux_evolution"])[:,:,1]
+
+    # third column (expected) of the state (A/0 or B/1) flux dataset (flux into state b = 1)
+    flux_ab = np.array([expected[2] for expected in fluxes[:,state]])
+    # CIs in rate (s^-1) format (divided by tau)
+    ci_lb_ab = np.array([expected[3] for expected in fluxes[:,state]]) * (1/tau)
+    ci_ub_ab = np.array([expected[4] for expected in fluxes[:,state]]) * (1/tau)
+
+    # divide k_AB by P_A for equilibrium rate correction (AB and BA steady states)
+    state_pops = np.array(h5["state_pop_evolution"])
+    # state A = label 0, state B = label 1
+    state_pop_a = np.array([expected[2] for expected in state_pops[:,0]])
+    #state_pop_b = np.array([expected[2] for expected in state_pops[:,1]])
+    # 2 different approaches here, can norm by state_pop_a (sum of weights in a)
+    # but since 2 state system, could also use 1 - state_pop_b since all not in b are in a
+    flux_ab = flux_ab / state_pop_a
+    #flux_ab = flux_ab / (1 - state_pop_b)
+
+    # convert from tau^-1 to seconds^-1
+    rate_ab = flux_ab * (1/tau)
+    
+    return rate_ab, ci_lb_ab, ci_ub_ab
+
+def plot_rate(scheme, tau=10**-10, state=1, label=None, units="rate", title=None, ax=None):
     """
     Plot the rate constant = target flux evolution AB / P_A 
 
@@ -68,46 +108,17 @@ def plot_rate(scheme, tau=10**-10, state=1, label=None, units="rate", ax=None):
     rate_ab : ndarray
         Array of rates from A -> B in seconds^-1.
     """
+    if units != "mfpt" and units != "rate":
+        raise ValueError(f"You put {units} for unit, which must be `mfpt` or `rate`.") 
     if ax is None:
         fig, ax = plt.subplots()
     else:
         fig = plt.gcf()
 
-    # read in direct.h5 file
-    h5 = h5py.File(f"{scheme}/direct.h5", "r")
+    rate_ab, ci_lb_ab, ci_ub_ab = extract_rate(scheme, tau, state)
 
-    # flux evolution dataset from cumulative evolution mode:
-    # When calculating time evolution of rate estimates, 
-    # ``cumulative`` evaluates rates over windows starting with --start-iter and 
-    # getting progressively wider to --stop-iter by steps of --step-iter.
-    fluxes = np.array(h5["target_flux_evolution"])
-
-    # conditional fluxes are macrostate to macrostate
-    # 2 dimensions: [(0 -> 0, 0 -> 1), 
-    #                (1 -> 0, 1 -> 1)] 
-    # I want 0 -> 1
-    #fluxes = np.array(h5["conditional_flux_evolution"])[:,:,1]
-
-    # third column (expected) of the state (A/0 or B/1) flux dataset (flux into state b = 1)
-    flux_ab = np.array([expected[2] for expected in fluxes[:,state]])
-    # CIs
-    ci_lb_ab = np.array([expected[3] for expected in fluxes[:,state]]) * (1/tau)
-    ci_ub_ab = np.array([expected[4] for expected in fluxes[:,state]]) * (1/tau)
     # WE iterations
-    iterations = np.arange(0, len(flux_ab), 1)
-
-    # divide k_AB by P_A for equilibrium rate correction (AB and BA steady states)
-    state_pops = np.array(h5["state_pop_evolution"])
-    # state A = label 0, state B = label 1
-    state_pop_a = np.array([expected[2] for expected in state_pops[:,0]])
-    #state_pop_b = np.array([expected[2] for expected in state_pops[:,1]])
-    # 2 different approaches here, can norm by state_pop_a (sum of weights in a)
-    # but since 2 state system, could also use 1 - state_pop_b since all not in b are in a
-    flux_ab = flux_ab / state_pop_a
-    #flux_ab = flux_ab / (1 - state_pop_b)
-
-    # convert from tau^-1 to seconds^-1
-    rate_ab = flux_ab * (1/tau)
+    iterations = np.arange(0, len(rate_ab), 1)
 
     if units == "mfpt":
         mfpt_ab = 1 / rate_ab
@@ -121,6 +132,7 @@ def plot_rate(scheme, tau=10**-10, state=1, label=None, units="rate", ax=None):
 
     ax.set_xlabel(r"WE Iteration ($\tau$=100ps)")
     plt.yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
+    plt.title(title)
 
     return rate_ab
 
@@ -162,10 +174,10 @@ def plot_statepop(scheme, ax=None):
 # TODO: function to make 4 panel plot
 # Plot of P_A, P_B, rate_AB, rate_BA, all as function of WE iteration
 
-fig, ax = plt.subplots(figsize=(10,6), sharey=True)
+# fig, ax = plt.subplots(figsize=(10,6), sharey=True)
 
-state = 1
-units = "rate"
+# state = 1
+# units = "rate"
 
 #plot_rate("conWEx_c2_rmsbbx", label="1A43 2D C2 RMSX", ax=ax, state=state)
 # plot_rate("conWEx_c2_rmsbbx_750i", label="1A43 2D C2 RMSX", ax=ax, state=state)
@@ -184,53 +196,99 @@ units = "rate"
 #     # add 2 item list: angle | final rate value
 #     final_rates.append([angle, rates[-1]])
 
-### get rates for multiple state definitions (WE c2x 4b)
-final_rates = []
-for angle in range(48, 66, 2):
-    rates = plot_rate(f"conWEx_4b/conWEx_c2_4b_{angle}", label=f"> {angle}°", ax=ax, state=state, units=units)
-    # add 2 item list: angle | final rate value
-    final_rates.append([angle, rates[-1]])
+def plot_multi_def_rates(state=1, units="rate", ver="v00"):
 
-#plot_statepop("conWEx_c2_rmsbbx", ax=ax)
-#plot_statepop("20-100conWE_lt32C2", ax=ax)
+    fig, ax = plt.subplots(figsize=(10,6), sharey=True)
+    ### get rates for multiple state definitions (WE c2x 4b)
+    final_rates = []
+    for angle in range(56, 68, 1):
+        rates = plot_rate(f"1a43_c2_we/4b_{angle}_{ver}", label=f"> {angle}°", ax=ax, state=state, 
+                        units=units, title=f"1A43 {ver}")
+        # add 2 item list: angle | final rate value
+        final_rates.append([angle, rates[-1]])
 
-#plot_rate("20-100conWE_lt30C2", label="< 30°", ax=ax, state=state, units=units)
-#plot_rate("20-100conWE_lt32C2", label="< 32°", ax=ax, state=state, units=units)
-# plot_rate("20-100conWE_lt34C2", label="< 34°", ax=ax, state=state, units=units)
-# plot_rate("20-100conWE_lt36C2", label="< 36°", ax=ax, state=state, units=units)
+    #plot_statepop("conWEx_c2_rmsbbx", ax=ax)
+    #plot_statepop("20-100conWE_lt32C2", ax=ax)
 
-# plot_rate("20-100conWE_to65C2", label="to 65°", ax=ax, state=state, units=units)
-# plot_rate("20-100conWE_to80C2", label="to 80°", ax=ax, state=state, units=units)
-# plot_rate("20-100conWE_to82C2", label="to 82°", ax=ax, state=state, units=units)
+    #plot_rate("20-100conWE_lt30C2", label="< 30°", ax=ax, state=state, units=units)
+    #plot_rate("20-100conWE_lt32C2", label="< 32°", ax=ax, state=state, units=units)
+    # plot_rate("20-100conWE_lt34C2", label="< 34°", ax=ax, state=state, units=units)
+    # plot_rate("20-100conWE_lt36C2", label="< 36°", ax=ax, state=state, units=units)
 
-#plot_rate("20-100conWE_lt31C2", label="< 31°", ax=ax, state=state)
+    # plot_rate("20-100conWE_to65C2", label="to 65°", ax=ax, state=state, units=units)
+    # plot_rate("20-100conWE_to80C2", label="to 80°", ax=ax, state=state, units=units)
+    # plot_rate("20-100conWE_to82C2", label="to 82°", ax=ax, state=state, units=units)
 
-# plot_rate("multi2kod_lt32C2", label="multi-2kod", ax=ax, state=state, units=units)
-# plot_rate("v02_2kod_lt32C2", label="v02-2kod", ax=ax, state=state, units=units)
+    #plot_rate("20-100conWE_lt31C2", label="< 31°", ax=ax, state=state)
 
-# shaded line from 100-150 s^-1 for experimental rate
-# ax.axhline(100, color="k", ls="--")
-# ax.axhline(150, color="k", ls="--", label="exp")
+    # plot_rate("multi2kod_lt32C2", label="multi-2kod", ax=ax, state=state, units=units)
+    # plot_rate("v02_2kod_lt32C2", label="v02-2kod", ax=ax, state=state, units=units)
 
-# D1-->D2 ~ 20-50, D2-->D1 ~ 100-150
-ax.axhline(150, color="k", ls="--", label="k$_{D2D1}$")
-ax.axhline(25, color="red", ls="--", label="k$_{D1D2}$")
+    # shaded line from 100-150 s^-1 for experimental rate
+    # ax.axhline(100, color="k", ls="--")
+    # ax.axhline(150, color="k", ls="--", label="exp")
 
-# converted to mfpt = 1 / rate
-# ax.axhline(1/100, color="k", ls="--")
-# ax.axhline(1/150, color="k", ls="--", label="exp")
+    # D1-->D2 ~ 20-50, D2-->D1 ~ 100-150
+    ax.axhline(150, color="k", ls="--", label="k$_{D2D1}$")
+    ax.axhline(25, color="red", ls="--", label="k$_{D1D2}$")
 
-plt.legend(loc="center left", bbox_to_anchor=(1.03, 0.5), frameon=False)
-#plt.yscale("symlog", subs=[2, 3, 4, 5, 6, 7, 8, 9])
-#plt.yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
-fig.tight_layout()
-#plt.savefig("WE_con_20-100_rates.png", dpi=300, transparent=True)
+    # converted to mfpt = 1 / rate
+    # ax.axhline(1/100, color="k", ls="--")
+    # ax.axhline(1/150, color="k", ls="--", label="exp")
 
-# plot the rates at various state definitions
-final_rates = np.array(final_rates)
-ax2 = fig.add_subplot(426)
-ax2.plot(final_rates[:,0], final_rates[:,1], color="k")
-ax2.set_xlabel("Angle State Definition", fontsize=11, labelpad=4)
-plt.yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
+    plt.legend(loc="center left", bbox_to_anchor=(1.03, 0.5), frameon=False)
+    #plt.yscale("symlog", subs=[2, 3, 4, 5, 6, 7, 8, 9])
+    #plt.yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
+    fig.tight_layout()
+    #plt.savefig("WE_con_20-100_rates.png", dpi=300, transparent=True)
 
-plt.show()
+    # plot the rates at various state definitions
+    final_rates = np.array(final_rates)
+    ax2 = fig.add_subplot(528)
+    ax2.plot(final_rates[:,0], final_rates[:,1], color="k")
+    ax2.set_xlabel("Angle State Definition", fontsize=11, labelpad=4)
+    plt.yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
+
+    #plt.savefig(f"figures/1a43_we_20-100_rates_{ver}.png", dpi=300, transparent=True)
+    plt.show()
+
+#plot_multi_def_rates(units="rate", ver="v01")
+
+def plot_std_error_rate_reps(state=1, units="rate"):
+    """ TODO
+    Make a plot of multiple replicates and std err for each tstate def
+        Iteration (X) VS Rate (Y) with std error
+    And maybe later a plot of multiple state defs (X) vs rate(Y) with error
+        Maybe both in one plot again?
+    """
+
+    fig, ax = plt.subplots(figsize=(10,6), sharey=True)
+    ### get rates for multiple state definitions (WE c2x 4b)
+    final_rates = []
+    for angle in range(56, 68, 1):
+        rates = plot_rate(f"1a43_c2_we/4b_{angle}", label=f"> {angle}°", ax=ax, state=state, 
+                        units=units, title=f"1A43")
+        # add 2 item list: angle | final rate value
+        final_rates.append([angle, rates[-1]])
+
+    # D1-->D2 ~ 20-50, D2-->D1 ~ 100-150
+    ax.axhline(150, color="k", ls="--", label="k$_{D2D1}$")
+    ax.axhline(25, color="red", ls="--", label="k$_{D1D2}$")
+
+    # converted to mfpt = 1 / rate
+    # ax.axhline(1/100, color="k", ls="--")
+    # ax.axhline(1/150, color="k", ls="--", label="exp")
+
+    plt.legend(loc="center left", bbox_to_anchor=(1.03, 0.5), frameon=False)
+    #plt.yscale("symlog", subs=[2, 3, 4, 5, 6, 7, 8, 9])
+    #plt.yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
+    fig.tight_layout()
+    #plt.savefig("WE_con_20-100_rates.png", dpi=300, transparent=True)
+
+    # plot the rates at various state definitions
+    final_rates = np.array(final_rates)
+
+    plt.yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
+
+    #plt.savefig(f"figures/1a43_we_20-100_rates.png", dpi=300, transparent=True)
+    plt.show()
