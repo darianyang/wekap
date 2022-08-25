@@ -1,0 +1,6 @@
+---
+bins:
+    type: RectilinearBinMapper
+    # add buffer region: strict starting state definition
+    boundaries: [[0.0, 30.0, 50.0, 66.0, 'inf']]
+    #boundaries: [[0.0, 2.8, 3.6, 5.0, 'inf']]
