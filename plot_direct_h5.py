@@ -36,13 +36,12 @@ The structure of these datasets is as follows:
     of tau.
 """
 
+from turtle import shearfactor
 import numpy as np
 import matplotlib.pyplot as plt
 import h5py
 
 plt.style.use("/Users/darian/github/wedap/wedap/styles/default.mplstyle")
-
-# TODO: gotta convert to a class object
 
 # TODO: function to make 4 panel plot
     # Plot of P_A, P_B, rate_AB, rate_BA, all as function of WE iteration
@@ -185,7 +184,7 @@ class Kinetics:
         else:
             raise ValueError(f"You put {self.units} for unit, which must be `mfpts` or `rates`.") 
 
-    def plot_multi_def_rates(self, ver="v00"):
+    def plot_multi_def_rates(self, ver="threshv00"):
         ### get rates for multiple state definitions (WE c2x 4b)
         final_rates = []
         for angle in range(56, 68, 1):
@@ -204,43 +203,125 @@ class Kinetics:
         # TODO: separate into different methods
         # plot the rates at various state definitions
         final_rates = np.array(final_rates)
-        ax2 = self.fig.add_subplot(528)
+        ax2 = self.fig.add_subplot(426)
         ax2.plot(final_rates[:,0], final_rates[:,1], color="k")
         ax2.set_xlabel("Angle State Definition", fontsize=11, labelpad=4)
         plt.yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
+
+        self.ax.set_ylim(10**-9, 10**10)
 
         self.fig.tight_layout()
         #plt.savefig(f"figures/1a43_we_20-100_rates_{ver}.png", dpi=300, transparent=True)
         
 
-    def plot_std_error_rate_reps(self):
-        """ TODO (might be easier to update to class structure first)
+    def plot_std_error_rate_reps(self, iterations=300, angles=10, reps=3):
+        """
+        ### get rates with std errors for multiple state definitions
         Make a plot of multiple replicates and std err for each tstate def
             Iteration (X) VS Rate (Y) with std error
         And maybe later a plot of multiple state defs (X) vs rate(Y) with error
             Maybe both in one plot again?
         """
-        ### get rates for multiple state definitions (WE c2x 4b)
-        final_rates = []
-        for angle in range(56, 68, 1):
-            rates = self.plot_rate(f"1a43_c2_we/4b_{angle}", label=f"> {angle}°", ax=self.ax, state=self.state, units=self.units, title=f"1A43")
-            # add 2 item list: angle | final rate value
-            final_rates.append([angle, rates[-1]])
+        rate_evolutions = np.zeros(shape=(iterations, angles, reps))
+        final_rate_scalers = np.zeros(shape=(angles, reps))
+        # for v00, v01, v02
+        for vi, ver in enumerate(range(0,reps)):
+            for ai, angle in enumerate(range(56, 66, 1)):
+                self.scheme = f"1a43_c2_we/4b_{angle}_v0{ver}"
+                self.label = f"> {angle}°"
+                # calc and fill out rate
+                rate_ab, ci_lb_ab, ci_ub_ab = self.extract_rate()
+                # make 3d array of rates: rows = tau, columns = angle, depth = version
+                rate_evolutions[:, ai, vi] = rate_ab[:300]
+                # array for final rate value
+                final_rate_scalers[ai, vi] = rate_ab[-1]
 
+        iterations = np.arange(0, iterations, 1)
+
+        # plot avg and std error of rate evo
+        avg_rate_evo = np.average(rate_evolutions, axis=2)
+        stdev_rate_evo = np.std(rate_evolutions, axis=2)
+        sterr_rate_evo = stdev_rate_evo / np.sqrt(rate_evolutions.shape[2])
+        for ai, angle in enumerate(range(56, 66, 1)):
+            avg = avg_rate_evo[:,ai]
+            err = sterr_rate_evo[:,ai]
+            self.ax.plot(avg, label=f"< {angle}°")
+            self.ax.fill_between(iterations, avg - err, avg + err, alpha=0.25)
+
+        self.plot_exp_vals()
         plt.legend(loc="center left", bbox_to_anchor=(1.03, 0.5), frameon=False)
+        # plt.legend(plot, [f"<{i}°" for i in range(56, 66, 1)],
+        #                 loc="center left", bbox_to_anchor=(1.03, 0.5), frameon=False)
         #plt.yscale("symlog", subs=[2, 3, 4, 5, 6, 7, 8, 9])
         #plt.yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
-        self.fig.tight_layout()
-        #plt.savefig("WE_con_20-100_rates.png", dpi=300, transparent=True)
 
+        # TODO: separate into different methods
         # plot the rates at various state definitions
-        final_rates = np.array(final_rates)
+        # ax2 = self.fig.add_subplot(426)
+
+        # # plot avg and std error of final rates
+        # avg_final_scaler = np.average(final_rate_scalers, axis=1)
+        # stdev_final_scaler = np.std(final_rate_scalers, axis=1)
+        # print(final_rate_scalers.shape[1])
+        # sterr_final_scaler = stdev_final_scaler / np.sqrt(final_rate_scalers.shape[1])
+
+        # angles = [i for i in range(56, 66, 1)]
+        # ax2.plot(angles, avg_final_scaler, color="k")
+        # ax2.fill_between(angles, 
+        #                  avg_final_scaler - sterr_final_scaler, 
+        #                  avg_final_scaler + sterr_final_scaler, 
+        #                  alpha=0.25, color="k")
+
+        # ax2.set_xlabel("Angle State Definition", fontsize=11, labelpad=4)
 
         plt.yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
 
-        #plt.savefig(f"figures/1a43_we_20-100_rates.png", dpi=300, transparent=True)
-        plt.show()
+        self.ax.set_ylabel("Rate Constant ($s^{-1}$)")
+        self.ax.set_xlabel(r"WE Iteration ($\tau$=100ps)")
 
+        self.fig.tight_layout()
+        #plt.savefig(f"figures/1a43_we_20-100_rates_{ver}.png", dpi=300, transparent=True)
 
-Kinetics().plot_multi_def_rates()
+        return final_rate_scalers
+
+    def plot_per_state_def(self, ax):
+        final_rate_scalers = self.plot_std_error_rate_reps()
+    
+        # plot the rates at various state definitions
+        
+
+        # plot avg and std error of final rates
+        avg_final_scaler = np.average(final_rate_scalers, axis=1)
+        stdev_final_scaler = np.std(final_rate_scalers, axis=1)
+        sterr_final_scaler = stdev_final_scaler / np.sqrt(final_rate_scalers.shape[1])
+
+        angles = [i for i in range(56, 66, 1)]
+        ax.plot(angles, avg_final_scaler, color="k")
+        ax.fill_between(angles, 
+                         avg_final_scaler - sterr_final_scaler, 
+                         avg_final_scaler + sterr_final_scaler, 
+                         alpha=0.25, color="k")
+
+        ax.set_xlabel("Angle State Definition", fontsize=11, labelpad=4)
+
+        plt.yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
+
+        x = angles
+        y = avg_final_scaler
+        # technically dx is constant so don't need diff(x)
+        dydx = np.diff(y) / np.diff(x)
+        ddydx = np.diff(dydx)
+        print(ddydx)
+        return dydx, ddydx
+
+fig, ax = plt.subplots(figsize=(12,5), sharey=True, ncols=2)
+#Kinetics(ax=ax).plot_multi_def_rates()
+#Kinetics(ax=ax).plot_std_error_rate_reps()
+dydx, ddydx = Kinetics(ax=ax[0]).plot_per_state_def(ax[1])
+
+fig2, ax2 = plt.subplots(ncols=2)
+angles = [i for i in range(56, 66, 1)]
+ax2[0].plot(angles[:-1], dydx)
+ax2[1].plot(angles[:-2], ddydx)
+
 plt.show()
