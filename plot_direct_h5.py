@@ -41,6 +41,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import h5py
 
+from scipy.signal import savgol_filter
+
 plt.style.use("/Users/darian/github/wedap/wedap/styles/default.mplstyle")
 
 # TODO: function to make 4 panel plot
@@ -224,8 +226,9 @@ class Kinetics:
         """
         rate_evolutions = np.zeros(shape=(iterations, angles, reps))
         final_rate_scalers = np.zeros(shape=(angles, reps))
-        # for v00, v01, v02
+        # for v00, v01, v02, (threshv00)
         for vi, ver in enumerate(range(0,reps)):
+        #for vi, ver in enumerate(["v00", "v01", "v02", "threshv00"]):
             for ai, angle in enumerate(range(56, 66, 1)):
                 self.scheme = f"1a43_c2_we/4b_{angle}_v0{ver}"
                 self.label = f"> {angle}°"
@@ -274,7 +277,7 @@ class Kinetics:
 
         # ax2.set_xlabel("Angle State Definition", fontsize=11, labelpad=4)
 
-        plt.yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
+        #plt.yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
 
         self.ax.set_ylabel("Rate Constant ($s^{-1}$)")
         self.ax.set_xlabel(r"WE Iteration ($\tau$=100ps)")
@@ -283,6 +286,12 @@ class Kinetics:
         #plt.savefig(f"figures/1a43_we_20-100_rates_{ver}.png", dpi=300, transparent=True)
 
         return final_rate_scalers
+
+    # To smooth the rate per tstate def plot
+    def smooth(self, y, box_pts):
+        box = np.ones(box_pts)/box_pts
+        y_smooth = np.convolve(y, box, mode="same")
+        return y_smooth
 
     def plot_per_state_def(self, ax):
         final_rate_scalers = self.plot_std_error_rate_reps()
@@ -302,26 +311,39 @@ class Kinetics:
                          avg_final_scaler + sterr_final_scaler, 
                          alpha=0.25, color="k")
 
-        ax.set_xlabel("Angle State Definition", fontsize=11, labelpad=4)
-
-        plt.yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
+        #ax.set_xlabel("Angle State Definition", fontsize=16, labelpad=4)
+        ax.set_xlabel("Angle State Definition")
+        self.ax = ax
+        self.plot_exp_vals()
+        #plt.yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
 
         x = angles
         y = avg_final_scaler
+        # attempts at fitting a curve
+        # window size 9, polynomial order 3
+        #yhat = savgol_filter(y, 9, 3)
+        #yhat = self.smooth(y, 10)
+
         # technically dx is constant so don't need diff(x)
         dydx = np.diff(y) / np.diff(x)
         ddydx = np.diff(dydx)
         print(ddydx)
         return dydx, ddydx
 
+
+#fig, ax = plt.subplots(figsize=(8,5), sharey=True, ncols=1)
 fig, ax = plt.subplots(figsize=(12,5), sharey=True, ncols=2)
+plt.yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
 #Kinetics(ax=ax).plot_multi_def_rates()
 #Kinetics(ax=ax).plot_std_error_rate_reps()
 dydx, ddydx = Kinetics(ax=ax[0]).plot_per_state_def(ax[1])
 
-fig2, ax2 = plt.subplots(ncols=2)
+fig2, ax2 = plt.subplots(ncols=1)
 angles = [i for i in range(56, 66, 1)]
-ax2[0].plot(angles[:-1], dydx)
-ax2[1].plot(angles[:-2], ddydx)
+ax2.plot(angles[:-1], dydx, color="k")
+#ax2[1].plot(angles[:-2], ddydx)
+ax2.set_xlabel("Angle State Definition")
+ax2.set_ylabel("∆ Rate Constant ($s^{-1}$)")
+fig2.tight_layout()
 
 plt.show()
