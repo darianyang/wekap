@@ -1,0 +1,9 @@
+---
+states:
+  - label: a
+    coords:
+      - [56]
+
+  - label: b
+    coords:
+      - [10]
