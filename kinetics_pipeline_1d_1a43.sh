@@ -31,7 +31,7 @@ SCHEME="$WEST_DIR/4b_${TS_DEF}_${SYSTEM}"
 
 # make scheme dir and fill with current pipeline run file
 mkdir -pv $SCHEME
-cp -v kinetics_pipeline_1d.sh $SCHEME
+cp -v kinetics_pipeline_1d_1a43.sh $SCHEME
 cd $SCHEME
 
 # define bins and states with yaml files

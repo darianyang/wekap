@@ -23,15 +23,13 @@ AUX_A="1_75_39_c2"
 TS_DEF=$1
 SYSTEM=$2
 WEST_DIR=$3
-#WEST=1a43_c2/west_${SYSTEM}.h5
 WEST=$WEST_DIR/west_${SYSTEM}.h5
 
 SCHEME="$WEST_DIR/4b_${TS_DEF}_${SYSTEM}" 
-#SCHEME="v02_2kod_lt32C2" 
 
 # make scheme dir and fill with current pipeline run file
 mkdir -pv $SCHEME
-cp -v kinetics_pipeline_1d.sh $SCHEME
+cp -v kinetics_pipeline_1d_2kod.sh $SCHEME
 cd $SCHEME
 
 # define bins and states with yaml files
@@ -40,7 +38,7 @@ cat << EOF > BINS
 bins:
     type: RectilinearBinMapper
     # add buffer region: strict starting state definition
-    boundaries: [[0.0, 30.0, 50.0, ${TS_DEF}.0, 'inf']]
+    boundaries: [[0.0, ${TS_DEF}.0, 48.0, 75.0, 'inf']]
     #boundaries: [[0.0, 2.8, 3.6, 5.0, 'inf']]
 EOF
 cat << EOF > STATES
@@ -48,11 +46,11 @@ cat << EOF > STATES
 states:
   - label: a
     coords:
-      - [35]
+      - [56]
 
   - label: b
     coords:
-      - [65]
+      - [10]
 EOF
 
 # create module.py file to process 1D or 2D scheme
