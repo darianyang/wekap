@@ -5,7 +5,7 @@ SYSTEMS=(v00 v01 v02 threshv00)
 #SYSTEMS=(v00)
 # $3 in kinetics pipeline
 #WEST_DIR=2kod_c2_80
-WEST_DIR=1a43_c2_we
+WEST_DIR=1a43_c2
 
 for SYS in ${SYSTEMS[@]} ; do 
     for ANGLE in {54..68..1} ; do
