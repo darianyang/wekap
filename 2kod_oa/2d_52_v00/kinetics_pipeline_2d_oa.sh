@@ -43,7 +43,7 @@ states:
 
   - label: b
     coords:
-      - [50, 70]
+      - [50, 75]
 EOF
 
 # create module.py file to process 1D or 2D scheme

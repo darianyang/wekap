@@ -2,7 +2,7 @@
 # run multiple kinetics analysis pipelines
 
 #SYSTEMS=(v00 v01 v02 threshv00)
-SYSTEMS=(v00)
+SYSTEMS=(v00 v01)
 # $3 in kinetics pipeline
 #WEST_DIR=2kod_c2_80
 WEST_DIR=2kod_oa

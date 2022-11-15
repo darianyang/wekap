@@ -6,4 +6,4 @@ states:
 
   - label: b
     coords:
-      - [50, 70]
+      - [50, 75]
