@@ -2,11 +2,11 @@
 # run multiple kinetics analysis pipelines
 
 #SYSTEMS=(v00 v01 v02 threshv00)
-#SYSTEMS=(v00 v01)
-SYSTEMS=(v02)
+SYSTEMS=(v00 v01 v02)
 # $3 in kinetics pipeline
 #WEST_DIR=2kod_c2_80
-WEST_DIR=2kod_oa_65c2
+#WEST_DIR=2kod_oa_65c2
+WEST_DIR=2kod_oa_60c2
 
 for SYS in ${SYSTEMS[@]} ; do 
     for ANGLE in {45..55..1} ; do
