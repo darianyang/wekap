@@ -188,20 +188,22 @@ class Kinetics:
 
         return state_pop_a, state_pop_b
 
-    def plot_exp_vals(self):
+    def plot_exp_vals(self, ax=None):
+        if ax is None:
+            ax = self.ax
         if self.units == "rates":
             # D1-->D2 ~ 20-50, D2-->D1 ~ 100-150
-            self.ax.axhline(150, color="k", ls="--", label="k$_{D2D1}$")
-            self.ax.axhline(25, color="red", ls="--", label="k$_{D1D2}$")
+            ax.axhline(150, color="k", ls="--", label="k$_{D2D1}$")
+            ax.axhline(25, color="red", ls="--", label="k$_{D1D2}$")
         elif self.units == "mfpts":
             # converted to mfpt = 1 / rate
-            self.ax.axhline(1/150, color="k", ls="--", label="MFPT$_{D2D1}$")
-            self.ax.axhline(1/25, color="red", ls="--", label="MFPT$_{D1D2}$")
+            ax.axhline(1/150, color="k", ls="--", label="MFPT$_{D2D1}$")
+            ax.axhline(1/25, color="red", ls="--", label="MFPT$_{D1D2}$")
         else:
             raise ValueError(f"You put {self.units} for unit, which must be `mfpts` or `rates`.") 
 
     # TODO: make this update scheme more automatically
-    def plot_multi_def_rates(self, ver="v00", def_subplot=True):
+    def plot_multi_def_rates(self, ver="v00", def_subplot=None):
         ### get rates for multiple state definitions (WE c2x 4b)
         final_rates = []
         ogscheme = self.scheme
@@ -221,9 +223,11 @@ class Kinetics:
         # TODO: separate into different methods
         # plot the rates at various state definitions
         if def_subplot:
-            ax2 = self.fig.add_subplot(324)
+            ax2 = self.fig.add_subplot(def_subplot)
             ax2.plot(self.states, final_rates, color="k")
-            ax2.set_xlabel("Angle State Definition", fontsize=11, labelpad=4)
+            ax2.set_xlabel("Angle State Definition", fontsize=11, labelpad=4, color="grey")
+            self.plot_exp_vals(ax2)
+            ax2.tick_params(colors="grey")
         plt.yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
 
         #self.ax.set_ylim(10**-9, 10**10)
@@ -233,7 +237,7 @@ class Kinetics:
             plt.savefig(f"figures/{ogscheme}_{self.prefix}_{ver}multi_state_rates.png", 
                         dpi=300, transparent=True)
 
-    def plot_std_error_rate_reps(self, iterations=500, reps=3, def_subplot=True):
+    def plot_std_error_rate_reps(self, iterations=500, reps=3, def_subplot=None):
         """
         ### get rates with std errors for multiple state definitions
         Make a plot of multiple replicates and std err for each tstate def
@@ -258,8 +262,6 @@ class Kinetics:
                 # array for final rate value
                 final_rate_scalers[ai, vi] = rate_ab[-1]
 
-        iterations = np.arange(0, iterations, 1)
-
         # plot avg and std error of rate evo
         avg_rate_evo = np.average(rate_evolutions, axis=2)
         stdev_rate_evo = np.std(rate_evolutions, axis=2)
@@ -268,7 +270,7 @@ class Kinetics:
             avg = avg_rate_evo[:,ai]
             err = sterr_rate_evo[:,ai]
             self.ax.plot(avg, label=f"< {angle}°")
-            self.ax.fill_between(iterations, avg - err, avg + err, alpha=0.25)
+            self.ax.fill_between(np.arange(0, iterations, 1), avg - err, avg + err, alpha=0.25)
 
         self.plot_exp_vals()
         plt.legend(loc="center left", bbox_to_anchor=(1.03, 0.5), frameon=False)
@@ -280,7 +282,7 @@ class Kinetics:
         # state definition subplot
         if def_subplot:
             # plot the rates at various state definitions
-            ax2 = self.fig.add_subplot(426)
+            ax2 = self.fig.add_subplot(def_subplot)
 
             # plot avg and std error of final rates
             avg_final_scaler = np.average(final_rate_scalers, axis=1)
@@ -294,9 +296,10 @@ class Kinetics:
                              avg_final_scaler + sterr_final_scaler, 
                              alpha=0.25, color="k")
 
-            ax2.set_xlabel("Angle State Definition", fontsize=11, labelpad=4)
-
+            ax2.set_xlabel("Angle State Definition", fontsize=11, labelpad=4, color="grey")
             plt.yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
+            self.plot_exp_vals(ax2)
+            ax2.tick_params(colors="grey")
 
         self.ax.set_ylabel("Rate Constant ($s^{-1}$)")
         self.ax.set_xlabel(r"WE Iteration ($\tau$=100ps)")
@@ -316,10 +319,8 @@ class Kinetics:
 
     def plot_per_state_def(self, ax):
         final_rate_scalers = self.plot_std_error_rate_reps()
-    
-        # plot the rates at various state definitions
-        
 
+        # plot the rates at various state definitions        
         # plot avg and std error of final rates
         avg_final_scaler = np.average(final_rate_scalers, axis=1)
         stdev_final_scaler = np.std(final_rate_scalers, axis=1)
@@ -389,10 +390,10 @@ class Kinetics:
 ######################################
 ###### common multi state plots ######
 ######################################
-k = Kinetics(45, 52, scheme="2kod_oa_65c2", prefix="2d_", state=1)
-#k = Kinetics(45, 52, scheme="2kod_oa_65c2", prefix="2d_", state=1)
-#k.plot_multi_def_rates(ver="v00", def_subplot=True)
-k.plot_std_error_rate_reps(reps=3)
+#k = Kinetics(4, 13, scheme="2kod_oa_lt15oa", prefix="1d_", state=1, savefig=True)
+#k.plot_multi_def_rates(ver="v00")
+k = Kinetics(45, 52, scheme="2kod_oa_65c2", prefix="2d_", state=1, savefig=True)
+k.plot_std_error_rate_reps(reps=3, def_subplot=326)
 
 plt.tight_layout()
 plt.show()
