@@ -290,6 +290,16 @@ class Kinetics:
             #print(final_rate_scalers.shape[1])
             sterr_final_scaler = stdev_final_scaler / np.sqrt(final_rate_scalers.shape[1])
 
+            # TODO: table of final avg +/- stderror values
+            rate_table = np.zeros((len(self.states), 3))
+            rate_table[:,0] = self.states
+            rate_table[:,1] = avg_final_scaler
+            rate_table[:,2] = sterr_final_scaler
+            #np.savetxt("rate_table.csv", rate_table, delimiter="\t")
+            import pandas as pd
+            df = pd.DataFrame(rate_table, columns=["State", "Average", "Stderr"])
+            print(df)
+
             ax2.plot(self.states, avg_final_scaler, color="k")
             ax2.fill_between(self.states, 
                              avg_final_scaler - sterr_final_scaler, 
