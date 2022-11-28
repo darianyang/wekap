@@ -237,7 +237,7 @@ class Kinetics:
             plt.savefig(f"figures/{ogscheme}_{self.prefix}_{ver}multi_state_rates.png", 
                         dpi=300, transparent=True)
 
-    def plot_std_error_rate_reps(self, iterations=500, reps=3, def_subplot=None):
+    def plot_std_error_rate_reps(self, iterations=500, reps=3, def_subplot=None, title=None):
         """
         ### get rates with std errors for multiple state definitions
         Make a plot of multiple replicates and std err for each tstate def
@@ -313,6 +313,8 @@ class Kinetics:
 
         self.ax.set_ylabel("Rate Constant ($s^{-1}$)")
         self.ax.set_xlabel(r"WE Iteration ($\tau$=100ps)")
+        if title:
+            self.ax.set_title(title)
 
         self.fig.tight_layout()
         if self.savefig:
@@ -402,8 +404,13 @@ class Kinetics:
 ######################################
 #k = Kinetics(4, 13, scheme="2kod_oa_lt15oa", prefix="1d_", state=1, savefig=True)
 #k.plot_multi_def_rates(ver="v00")
-k = Kinetics(45, 52, scheme="2kod_oa_65c2", prefix="2d_", state=1, savefig=True)
-k.plot_std_error_rate_reps(reps=3, def_subplot=326)
+# k = Kinetics(45, 53, scheme="2kod_oa_65c2", prefix="2d_", state=1, savefig=True)
+# k.plot_std_error_rate_reps(reps=3, def_subplot=326, title="2KOD >65° C2 Angle")
+
+k = Kinetics(65, 71, scheme="2kod_oa_65c2", prefix="2d_", state=1, savefig=True)
+k.plot_std_error_rate_reps(reps=3, def_subplot=326, title="2KOD >65° C2 Angle")
 
 plt.tight_layout()
 plt.show()
+
+# TODO: plot the 51° OA and multiple C2 angles
