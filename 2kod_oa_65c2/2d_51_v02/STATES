@@ -2,8 +2,8 @@
 states:
   - label: a
     coords:
-      - [25, 60]
+      - [25, 55]
 
   - label: b
     coords:
-      - [50, 75]
+      - [80, 100]

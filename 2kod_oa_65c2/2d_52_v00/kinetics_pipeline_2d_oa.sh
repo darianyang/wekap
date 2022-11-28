@@ -15,6 +15,8 @@ TS_DEF=$1
 SYSTEM=$2
 WEST_DIR=$3
 
+C2=$4
+
 WDIR=~/we_data/2kod_oa
 WEST=${SYSTEM}.h5
 
@@ -32,18 +34,18 @@ bins:
     type: RectilinearBinMapper
     # add buffer region: strict starting state definition
     boundaries: [[0.0, 38.0, ${TS_DEF}, 'inf'], 
-                 [0.0, 65.0, 'inf']]
+                 [0.0, 60.0, ${C2}, 'inf']]
 EOF
 cat << EOF > STATES
 ---
 states:
   - label: a
     coords:
-      - [25, 60]
+      - [25, 55]
 
   - label: b
     coords:
-      - [50, 75]
+      - [80, 100]
 EOF
 
 # create module.py file to process 1D or 2D scheme
