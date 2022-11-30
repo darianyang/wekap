@@ -414,38 +414,65 @@ class Kinetics:
 #     plt.ylim(10**-8, 10**7)
 #     rates = k.plot_std_error_rate_reps(reps=3, def_subplot=326, title=f"2KOD >{c2}° C2 Angle")
 
-# TODO: save the 50° oa value and plot them later
-c2_rates = []
-for c2 in range(65, 72):
-    k = Kinetics(50, 51, scheme=f"2kod_oa_{c2}c2", prefix="2d_", state=1, savefig=False)
-    rates = k.plot_std_error_rate_reps(reps=3, title=f"2KOD >{c2}° C2 Angle")
-    cols = [c2, np.average(rates), (np.std(rates)/np.sqrt(3))]
-    c2_rates.append(cols)
+#################################################
+### save the 50° oa value and plot them later ###
+#################################################
+# c2_rates = []
+# for c2 in range(65, 72):
+#     k = Kinetics(50, 51, scheme=f"2kod_oa_{c2}c2", prefix="2d_", state=1, savefig=False)
+#     rates = k.plot_std_error_rate_reps(reps=3, title=f"2KOD >{c2}° C2 Angle")
+#     cols = [c2, np.average(rates), (np.std(rates)/np.sqrt(3))]
+#     c2_rates.append(cols)
 
-c2_rates = np.array(c2_rates)
-print(c2_rates)
-fig3, ax3 = plt.subplots()
+# # c2_rates = np.array(c2_rates)
+# # print(c2_rates)
+# # fig3, ax3 = plt.subplots()
 
-print(c2_rates[:,0] - c2_rates[:,2])
+# # print(c2_rates[:,0] - c2_rates[:,2])
 
-ax3.plot(c2_rates[:,0], c2_rates[:,1], color="k")
-ax3.fill_between(c2_rates[:,0], 
-                 c2_rates[:,1] - c2_rates[:,2], 
-                 c2_rates[:,1] + c2_rates[:,2], 
-                 alpha=0.25, color="k")
+# # ax3.plot(c2_rates[:,0], c2_rates[:,1], color="k")
+# # ax3.fill_between(c2_rates[:,0], 
+# #                  c2_rates[:,1] - c2_rates[:,2], 
+# #                  c2_rates[:,1] + c2_rates[:,2], 
+# #                  alpha=0.25, color="k")
 
-ax3.set_xlabel("Angle State Definition")
-ax3.set_ylabel("Rate Constant ($s^{-1}$)")
-#plt.yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
-#plt.yscale("symlog", subs=[2, 3, 4, 5, 6, 7, 8, 9])
-plt.ylim(-10, 250)
-k.plot_exp_vals(ax3)
-#ax3.tick_params(colors="grey")
-plt.legend()
-plt.tight_layout()
-fig3.savefig("figures/c2_65-71.png", dpi=300, transparent=True)
+# # ax3.set_xlabel("Angle State Definition")
+# # ax3.set_ylabel("Rate Constant ($s^{-1}$)")
+# # #plt.yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
+# # #plt.yscale("symlog", subs=[2, 3, 4, 5, 6, 7, 8, 9])
+# # plt.ylim(-10, 250)
+# # k.plot_exp_vals(ax3)
+# # #ax3.tick_params(colors="grey")
+# # plt.legend()
+# # plt.tight_layout()
+# # fig3.savefig("figures/c2_65-71.png", dpi=300, transparent=True)
 
 #plt.tight_layout()
 #plt.show()
 
-# TODO: plot the 51° OA and multiple C2 angles
+
+# TODO: a heatmap plot with X definition, Y definition, and Z as the final rate constant
+#########################
+### state def heatmap ###
+#########################
+c2_rates = []
+for c2 in range(65, 72):
+    k = Kinetics(45, 53, scheme=f"2kod_oa_{c2}c2", prefix="2d_", state=1, savefig=False)
+    rates = k.plot_std_error_rate_reps(reps=3, title=f"2KOD >{c2}° C2 Angle")
+    #cols = [c2, np.average(rates), (np.std(rates)/np.sqrt(3))]
+    #print(rates[-1:].shape)
+    c2_rates.append(rates)
+
+x = [i for i in range(65, 72)]
+y = [i for i in range(45, 53)]
+z = np.average(np.array(c2_rates), axis=2)
+
+import matplotlib.colors
+
+fig4, ax4 = plt.subplots()
+mesh = ax4.pcolormesh(y, x, z, shading="auto", norm=matplotlib.colors.LogNorm(), cmap="tab20")
+cbar = fig4.colorbar(mesh)
+cbar.set_label("Rate Constant ($s^{-1}$)")
+ax4.set(xlabel="Orientation Angle (°)", ylabel="C2 Angle (°)")
+fig4.tight_layout()
+fig4.savefig("figures/angle_heatmap.png", dpi=300)
