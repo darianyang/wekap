@@ -9,7 +9,7 @@ SYSTEMS=(v00 v01 v02)
 #WEST_DIR=2kod_oa_60c2
 
 for SYS in ${SYSTEMS[@]} ; do 
-    for C2 in {65..75} ; do
+    for C2 in {60..64} ; do
         WEST_DIR=2kod_oa_${C2}c2
     # o_angle
     for ANGLE in {45..55..1} ; do
