@@ -3,7 +3,8 @@
 
 #SYSTEMS=(v00 v01 v02 threshv00)
 #SYSTEMS=(2kod_v00 lo_pH_v00 150end_v00)
-SYSTEMS=(150end_v00)
+SYSTEMS=(2kod_v00 lo_pH_v00)
+#SYSTEMS=(150end_v00)
 # $3 in kinetics pipeline
 WEST_DIR=gt2500oapdt_gt65c2
 

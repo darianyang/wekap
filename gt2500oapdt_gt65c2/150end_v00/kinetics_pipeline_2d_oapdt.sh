@@ -19,8 +19,8 @@ C2=$4
 WDIR=~/we_data/1d_oapdt
 WEST=${SYSTEM}.h5
 
-#SCHEME="$WEST_DIR/2d_${TS_DEF}_${SYSTEM}" 
-SCHEME="$WEST_DIR" 
+SCHEME="$WEST_DIR/${SYSTEM}" 
+#SCHEME="$WEST_DIR" 
 
 # make scheme dir and fill with current pipeline run file
 mkdir -pv $SCHEME
