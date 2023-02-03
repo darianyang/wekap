@@ -36,7 +36,6 @@ The structure of these datasets is as follows:
     of tau.
 """
 
-from turtle import colormode
 import numpy as np
 import matplotlib.pyplot as plt
 import h5py
@@ -99,6 +98,7 @@ class Kinetics:
         """
         Get the raw rate array from one direct.h5 file.
         """
+        print(self.scheme)
         # read in direct.h5 file
         h5 = h5py.File(f"{self.scheme}/direct.h5", "r")
 
@@ -160,7 +160,7 @@ class Kinetics:
             self.ax.set_ylabel("Rate Constant ($s^{-1}$)")
 
         self.ax.set_xlabel(r"WE Iteration ($\tau$=100ps)")
-        plt.yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
+        self.ax.set_yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
         self.ax.set_title(title)
 
         return rate_ab
@@ -189,13 +189,21 @@ class Kinetics:
 
         return state_pop_a, state_pop_b
 
-    def plot_exp_vals(self, ax=None):
+    def plot_exp_vals(self, ax=None, f_range=False):
+        """
+        f_range : bool
+            Set to True to use mark 25-67 s^-1 as the k_D1D2 rate.
+        """
         if ax is None:
             ax = self.ax
         if self.units == "rates":
-            # D1-->D2 ~ 20-50, D2-->D1 ~ 100-150
-            ax.axhline(150, color="k", ls="--", label="k$_{D2D1}$")
-            ax.axhline(25, color="red", ls="--", label="k$_{D1D2}$")
+            if f_range:
+                # DTY 19F rates of 25-67 for k_D1D2
+                ax.axhspan(25, 67, alpha=0.25, color="red", label="k$_{D1D2}$")
+            else:
+                # D1-->D2 ~ 20-50, D2-->D1 ~ 100-150
+                ax.axhline(150, color="k", ls="--", label="k$_{D2D1}$")
+                ax.axhline(25, color="red", ls="--", label="k$_{D1D2}$")
         elif self.units == "mfpts":
             # converted to mfpt = 1 / rate
             ax.axhline(1/150, color="k", ls="--", label="MFPT$_{D2D1}$")
@@ -418,34 +426,34 @@ class Kinetics:
 ### save the 50° oa value and plot them later ###
 #################################################
 # c2_rates = []
-# for c2 in range(65, 72):
+# for c2 in range(60, 72):
 #     k = Kinetics(50, 51, scheme=f"2kod_oa_{c2}c2", prefix="2d_", state=1, savefig=False)
 #     rates = k.plot_std_error_rate_reps(reps=3, title=f"2KOD >{c2}° C2 Angle")
 #     cols = [c2, np.average(rates), (np.std(rates)/np.sqrt(3))]
 #     c2_rates.append(cols)
 
-# # c2_rates = np.array(c2_rates)
-# # print(c2_rates)
-# # fig3, ax3 = plt.subplots()
+# c2_rates = np.array(c2_rates)
+# print(c2_rates)
+# fig3, ax3 = plt.subplots()
 
-# # print(c2_rates[:,0] - c2_rates[:,2])
+# print(c2_rates[:,0] - c2_rates[:,2])
 
-# # ax3.plot(c2_rates[:,0], c2_rates[:,1], color="k")
-# # ax3.fill_between(c2_rates[:,0], 
-# #                  c2_rates[:,1] - c2_rates[:,2], 
-# #                  c2_rates[:,1] + c2_rates[:,2], 
-# #                  alpha=0.25, color="k")
+# ax3.plot(c2_rates[:,0], c2_rates[:,1], color="k")
+# ax3.fill_between(c2_rates[:,0], 
+#                  c2_rates[:,1] - c2_rates[:,2], 
+#                  c2_rates[:,1] + c2_rates[:,2], 
+#                  alpha=0.25, color="k")
 
-# # ax3.set_xlabel("Angle State Definition")
-# # ax3.set_ylabel("Rate Constant ($s^{-1}$)")
-# # #plt.yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
-# # #plt.yscale("symlog", subs=[2, 3, 4, 5, 6, 7, 8, 9])
-# # plt.ylim(-10, 250)
-# # k.plot_exp_vals(ax3)
-# # #ax3.tick_params(colors="grey")
-# # plt.legend()
-# # plt.tight_layout()
-# # fig3.savefig("figures/c2_65-71.png", dpi=300, transparent=True)
+# ax3.set_xlabel("Angle State Definition")
+# ax3.set_ylabel("Rate Constant ($s^{-1}$)")
+# #plt.yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
+# #plt.yscale("symlog", subs=[2, 3, 4, 5, 6, 7, 8, 9])
+# plt.ylim(-10, 250)
+# k.plot_exp_vals(ax3)
+# #ax3.tick_params(colors="grey")
+# plt.legend()
+# plt.tight_layout()
+# fig3.savefig("figures/c2_60-71.png", dpi=300, transparent=True)
 
 #plt.tight_layout()
 #plt.show()
@@ -455,24 +463,73 @@ class Kinetics:
 #########################
 ### state def heatmap ###
 #########################
-c2_rates = []
-for c2 in range(65, 72):
-    k = Kinetics(45, 53, scheme=f"2kod_oa_{c2}c2", prefix="2d_", state=1, savefig=False)
-    rates = k.plot_std_error_rate_reps(reps=3, title=f"2KOD >{c2}° C2 Angle")
-    #cols = [c2, np.average(rates), (np.std(rates)/np.sqrt(3))]
-    #print(rates[-1:].shape)
-    c2_rates.append(rates)
+# TODO: make a custom cmap with the center around the experimental rate
+# c2_rates = []
+# for c2 in range(60, 72):
+#     k = Kinetics(45, 54, scheme=f"2kod_oa_{c2}c2", prefix="2d_", state=1, savefig=False)
+#     rates = k.plot_std_error_rate_reps(reps=3, title=f"2KOD >{c2}° C2 Angle")
+#     #cols = [c2, np.average(rates), (np.std(rates)/np.sqrt(3))]
+#     #print(rates[-1:].shape)
+#     c2_rates.append(rates)
 
-x = [i for i in range(65, 72)]
-y = [i for i in range(45, 53)]
-z = np.average(np.array(c2_rates), axis=2)
+# x = [i for i in range(60, 72)]
+# y = [i for i in range(45, 54)]
+# z = np.average(np.array(c2_rates), axis=2)
 
-import matplotlib.colors
+# import matplotlib.colors
 
-fig4, ax4 = plt.subplots()
-mesh = ax4.pcolormesh(y, x, z, shading="auto", norm=matplotlib.colors.LogNorm(), cmap="tab20")
-cbar = fig4.colorbar(mesh)
-cbar.set_label("Rate Constant ($s^{-1}$)")
-ax4.set(xlabel="Orientation Angle (°)", ylabel="C2 Angle (°)")
-fig4.tight_layout()
-fig4.savefig("figures/angle_heatmap.png", dpi=300)
+# fig4, ax4 = plt.subplots()
+# mesh = ax4.pcolormesh(y, x, z, shading="auto", norm=matplotlib.colors.LogNorm(), cmap="afmhot")
+# cbar = fig4.colorbar(mesh)
+# cbar.set_label("Rate Constant ($s^{-1}$)")
+# ax4.set(xlabel="Orientation Angle (°)", ylabel="C2 Angle (°)")
+# fig4.tight_layout()
+# fig4.savefig("figures/angle_heatmap.png", dpi=300)
+
+
+######################
+### 1d oapdt plots ###
+######################
+# fig, ax = plt.subplots()
+# systems = ["2kod_v00", "lo_pH_v00", "150end_v00"]
+# names = ["2kod WT", "Low pH", "150-end"]
+# for i in range(3):
+#     k = Kinetics(scheme=f"gt2500oapdt_gt70c2/{systems[i]}", state=1, label=names[i], ax=ax)
+#     k.plot_rate()
+#     # k = Kinetics(scheme=f"gt2500oapdt_gt65c2/{systems[i]}", state=1, label=names[i], ax=ax)
+#     # k.plot_rate()
+# k.plot_exp_vals(f_range=True)
+# plt.legend()
+# plt.tight_layout()
+# plt.show()
+# # fig.savefig("figures/wt_lo_150end_2500oapdt_70c2.png", dpi=300, transparent=True)
+
+############################
+### oapdt c2 plots/grids ###
+############################
+fig, ax = plt.subplots(ncols=2, sharey=True, figsize=(10,5))
+#systems = ["2kod_v00", "lo_pH_v00", "150end_v00"]
+systems = ["2kod_v00"]
+#systems = ["lo_pH_v00"]
+final_rates = []
+for c2 in range(66,73):
+#for c2 in range(70,71):
+    #for oapdt in range(2100, 2700, 100):
+    for oapdt in range(2500, 2600, 100):
+        k = Kinetics(scheme=f"oapdt_c2_2dgrid/{systems[0]}/{oapdt}oapdt_{c2}c2",
+                    state=1, label=f"{str(c2)}_{oapdt}", ax=ax[0])
+        rate = k.plot_rate()
+        final_rates.append(rate[-1])
+ax[1].plot([i for i in range(66,73)], final_rates)
+#ax[1].plot([i for i in range(2100,2700,100)], final_rates)
+k.plot_exp_vals(f_range=True, ax=ax[0])
+#plt.legend()
+ax[0].legend()
+ax[1].set_yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
+plt.tight_layout()
+plt.show()
+# fig.savefig("figures/wt_lo_150end_2500oapdt_70c2.png", dpi=300, transparent=True)
+fig.savefig("figures/testing_2500oapdt.png", dpi=300, transparent=True)
+#fig.savefig("figures/testing_70c2.png", dpi=300, transparent=True)
+
+# TODO: try/except block for OS error for failed kinetics 
