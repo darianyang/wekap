@@ -135,7 +135,7 @@ class Kinetics:
         
         return rate_ab, ci_lb_ab, ci_ub_ab
 
-    def plot_rate(self, title=None):
+    def plot_rate(self, title=None, moltime=True):
         """
         Plot the rate constant = target flux evolution AB / P_A 
 
@@ -148,6 +148,11 @@ class Kinetics:
 
         # WE iterations
         iterations = np.arange(0, len(rate_ab), 1)
+        if moltime:
+            # multiply by tau (ps)
+            iterations *= 100
+            # convert to ns
+            iterations = np.divide(iterations, 1000)
 
         if self.units == "mfpts":
             mfpt_ab = 1 / rate_ab
@@ -159,7 +164,11 @@ class Kinetics:
             self.ax.fill_between(iterations, rate_ab - ci_lb_ab, rate_ab + ci_ub_ab, alpha=0.5)
             self.ax.set_ylabel("Rate Constant ($s^{-1}$)")
 
-        self.ax.set_xlabel(r"WE Iteration ($\tau$=100ps)")
+        if moltime:
+            self.ax.set_xlabel(r"Molecular Time (ns)")
+        else:
+            self.ax.set_xlabel(r"WE Iteration ($\tau$=100ps)")
+        
         self.ax.set_yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
         self.ax.set_title(title)
 
@@ -199,7 +208,7 @@ class Kinetics:
         if self.units == "rates":
             if f_range:
                 # DTY 19F rates of 25-67 for k_D1D2
-                ax.axhspan(25, 67, alpha=0.25, color="red", label="k$_{D1D2}$")
+                ax.axhspan(25, 67, alpha=0.25, color="grey", label="NMR k$_{D1D2}$")
             else:
                 # D1-->D2 ~ 20-50, D2-->D1 ~ 100-150
                 ax.axhline(150, color="k", ls="--", label="k$_{D2D1}$")
@@ -490,48 +499,82 @@ class Kinetics:
 ######################
 ### 1d oapdt plots ###
 ######################
-# fig, ax = plt.subplots()
+fig, ax = plt.subplots()
 # systems = ["2kod_v00", "lo_pH_v00", "150end_v00"]
-# names = ["2kod WT", "Low pH", "150-end"]
-# for i in range(3):
-#     k = Kinetics(scheme=f"gt2500oapdt_gt70c2/{systems[i]}", state=1, label=names[i], ax=ax)
-#     k.plot_rate()
-#     # k = Kinetics(scheme=f"gt2500oapdt_gt65c2/{systems[i]}", state=1, label=names[i], ax=ax)
-#     # k.plot_rate()
-# k.plot_exp_vals(f_range=True)
-# plt.legend()
-# plt.tight_layout()
-# plt.show()
-# # fig.savefig("figures/wt_lo_150end_2500oapdt_70c2.png", dpi=300, transparent=True)
+#systems = ["2kod_v00"]
+systems = ["2kod_v00", "4F_v00", "7F_v00"]
+#names = ["2kod WT", "Low pH", "150-end"]
+#names = ["From WE"]
+for i in range(len(systems)):
+    #k = Kinetics(scheme=f"gt2500oapdt_gt70c2/{systems[i]}", state=1, label=names[i], ax=ax)
+    k = Kinetics(scheme=f"oapdt_c2_2dgrid/{systems[i]}/2500oapdt_70c2", state=1, label=systems[i], ax=ax)
+    k.plot_rate()
+    # k = Kinetics(scheme=f"gt2500oapdt_gt65c2/{systems[i]}", state=1, label=names[i], ax=ax)
+    # k.plot_rate()
+k.plot_exp_vals(f_range=True)
+plt.legend()
+plt.tight_layout()
+#plt.ylim(0, 1000)
+plt.show()
+#fig.savefig("figures/wt_only_2500oapdt_70c2.png", dpi=300, transparent=True)
 
 ############################
 ### oapdt c2 plots/grids ###
 ############################
-fig, ax = plt.subplots(ncols=2, sharey=True, figsize=(10,5))
-#systems = ["2kod_v00", "lo_pH_v00", "150end_v00"]
-systems = ["2kod_v00"]
-#systems = ["lo_pH_v00"]
-final_rates = []
-for c2 in range(66,73):
-#for c2 in range(70,71):
-    #for oapdt in range(2100, 2700, 100):
-    for oapdt in range(2500, 2600, 100):
-        k = Kinetics(scheme=f"oapdt_c2_2dgrid/{systems[0]}/{oapdt}oapdt_{c2}c2",
-                    state=1, label=f"{str(c2)}_{oapdt}", ax=ax[0])
-        rate = k.plot_rate()
-        final_rates.append(rate[-1])
-ax[1].plot([i for i in range(66,73)], final_rates)
-#ax[1].plot([i for i in range(2100,2700,100)], final_rates)
-k.plot_exp_vals(f_range=True, ax=ax[0])
-#plt.legend()
-ax[0].legend()
-ax[1].set_yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
-#ax[1].set_xlabel("Orientation Angle Product")
-ax[1].set_xlabel("C2 Angle (°)")
-plt.tight_layout()
-plt.show()
+# TODO: the reverse rates look pretty good, explore this more
+# fig, ax = plt.subplots(ncols=2, sharey=True, figsize=(10,5))
+# #systems = ["2kod_v00", "lo_pH_v00", "150end_v00"]
+# systems = ["2kod_v00"]
+# #systems = ["lo_pH_v00"]
+# final_rates = []
+# for c2 in range(66,73):
+# #for c2 in range(70,71):
+#     #for oapdt in range(2100, 2700, 100):
+#     for oapdt in range(2500, 2600, 100):
+#         k = Kinetics(scheme=f"oapdt_c2_2dgrid/{systems[0]}/{oapdt}oapdt_{c2}c2",
+#                     state=0, label=f"{str(c2)}_{oapdt}", ax=ax[0])
+#         rate = k.plot_rate()
+#         final_rates.append(rate[-1])
+# ax[1].plot([i for i in range(66,73)], final_rates)
+# #ax[1].plot([i for i in range(2100,2700,100)], final_rates)
+# k.plot_exp_vals(f_range=True, ax=ax[0])
+# #plt.legend()
+# ax[0].legend()
+# ax[1].set_yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
+# #ax[1].set_xlabel("Orientation Angle Product")
+# #ax[1].set_xlabel("C2 Angle (°)")
+# plt.tight_layout()
+# plt.show()
 # fig.savefig("figures/wt_lo_150end_2500oapdt_70c2.png", dpi=300, transparent=True)
-fig.savefig("figures/testing_2500oapdt.png", dpi=300, transparent=True)
+#fig.savefig("figures/testing_2500oapdt.png", dpi=300, transparent=True)
 #fig.savefig("figures/testing_70c2.png", dpi=300, transparent=True)
 
 # TODO: try/except block for OS error for failed kinetics 
+
+
+##################################################
+### oapdt c2 plots of multiple def final rates ###
+##################################################
+# fig, ax = plt.subplots(ncols=2, sharey=True, figsize=(10,5))
+# #systems = ["2kod_v00", "lo_pH_v00", "150end_v00"]
+# systems = ["2kod_v00"]
+# #systems = ["lo_pH_v00"]
+# final_rates = []
+# for c2 in range(66,73):
+# #for c2 in range(70,71):
+#     #for oapdt in range(2100, 2700, 100):
+#     for oapdt in range(2500, 2600, 100):
+#         k = Kinetics(scheme=f"oapdt_c2_2dgrid/{systems[0]}/{oapdt}oapdt_{c2}c2")
+#         rate = k.plot_rate()
+#         final_rates.append(rate[-1])
+# ax[1].plot([i for i in range(66,73)], final_rates)
+# #ax[1].plot([i for i in range(2100,2700,100)], final_rates)
+# k.plot_exp_vals(f_range=True, ax=ax[0])
+# #plt.legend()
+# ax[0].legend()
+# ax[1].set_yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
+# #ax[1].set_xlabel("Orientation Angle Product")
+# ax[1].set_xlabel("C2 Angle (°)")
+# plt.tight_layout()
+# plt.show()
+# fig.savefig("figures/wt_lo_150end_2500oapdt_70c2.png", dpi=300, transparent=True)
