@@ -60,7 +60,7 @@ class Kinetics:
             The resampling interval of the WE simualtion.
             This should be in seconds, default 100ps = 100 * 10^-12 = 10^-10
         state : int
-            State for flux calculations, 0 = A and 1 = B.
+            State for flux calculations (flux into `state`), 0 = A and 1 = B.
         label : str
             Data label.
         statepop : str
@@ -138,9 +138,17 @@ class Kinetics:
             state_pop_a = np.array([expected[0] for expected in state_pops[:,0]])
             #print(state_pop_a)
 
+        # norm by state pop A if calculating A --> B
+        if self.state == 1:
+            state_pop = state_pop_a
+        # norm by state pop B if calculating B --> A
+        elif self.state == 0:
+            state_pop = 1 - state_pop_a
+
         # 2 different approaches here, can norm by state_pop_a (sum of weights in a)
         # but since 2 state system, could also use 1 - state_pop_b since all not in b are in a
-        flux_ab = flux_ab / state_pop_a
+        flux_ab = flux_ab / state_pop
+        #flux_ab = flux_ab / state_pop_a
         #flux_ab = flux_ab / (1 - state_pop_b)
 
         # convert from tau^-1 to seconds^-1
@@ -595,8 +603,12 @@ class Kinetics:
 #######################
 ### oamax c2 plots  ###
 #######################
-k = Kinetics(scheme=f"oamax_c2_2dgrid/WT_v00/54oamax_75c2", state=1, statepop="assign")
+# TODO: run some ssWE, need a good tstate
+fig, ax = plt.subplots()
+k = Kinetics(scheme=f"oamax_c2_2dgrid/WT_v00/55oamax_78c2", state=1, statepop="direct", ax=ax)
 k.plot_rate()
-k.plot_exp_vals(f_range=True)
+k2 = Kinetics(scheme=f"oamax_c2_2dgrid/WT_v00/55oamax_78c2", state=0, statepop="direct", ax=ax)
+k2.plot_rate()
+k.plot_exp_vals(f_range=True, ax=ax)
 plt.tight_layout()
 plt.show()
