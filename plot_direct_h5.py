@@ -49,7 +49,7 @@ plt.style.use("/Users/darian/github/wedap/wedap/styles/default.mplstyle")
 
 class Kinetics:
 
-    def __init__(self, min_state=None, max_state=None, scheme=None, prefix=None,
+    def __init__(self, min_state=None, max_state=None, scheme=None, prefix=None, statepop="direct",
                  tau=10**-10, state=1, label=None, units="rates", ax=None, savefig=False):
         """ TODO
         Parameters
@@ -63,6 +63,9 @@ class Kinetics:
             State for flux calculations, 0 = A and 1 = B.
         label : str
             Data label.
+        statepop : str
+            'direct' for state_population_evolution from direct.h5 or
+            'assign' for labeled_populations from assign.h5.
         units : str
             Can be `rates` (default) or `mfpts`.
         ax : mpl axes object
@@ -75,6 +78,7 @@ class Kinetics:
         self.state = state
         self.label = label
         self.units = units
+        self.statepop = statepop
 
         self.min_state = min_state
         self.max_state = max_state
@@ -101,6 +105,7 @@ class Kinetics:
         print(self.scheme)
         # read in direct.h5 file
         h5 = h5py.File(f"{self.scheme}/direct.h5", "r")
+        assign_h5 = h5py.File(f"{self.scheme}/assign.h5", "r")
 
         # flux evolution dataset from cumulative evolution mode:
         # When calculating time evolution of rate estimates, 
@@ -120,11 +125,19 @@ class Kinetics:
         ci_lb_ab = np.array([expected[3] for expected in fluxes[:,self.state]]) * (1/self.tau)
         ci_ub_ab = np.array([expected[4] for expected in fluxes[:,self.state]]) * (1/self.tau)
 
-        # divide k_AB by P_A for equilibrium rate correction (AB and BA steady states)
-        state_pops = np.array(h5["state_pop_evolution"])
-        # state A = label 0, state B = label 1
-        state_pop_a = np.array([expected[2] for expected in state_pops[:,0]])
-        #state_pop_b = np.array([expected[2] for expected in state_pops[:,1]])
+        if self.statepop == "direct":
+            # divide k_AB by P_A for equilibrium rate correction (AB and BA steady states)
+            state_pops = np.array(h5["state_pop_evolution"])
+            # state A = label 0, state B = label 1
+            state_pop_a = np.array([expected[2] for expected in state_pops[:,0]])
+            #state_pop_b = np.array([expected[2] for expected in state_pops[:,1]])
+        elif self.statepop == "assign":
+            # divide k_AB by P_A for equilibrium rate correction (AB and BA steady states)
+            state_pops = np.array(assign_h5["labeled_populations"])
+            # state A = label 0, state B = label 1
+            state_pop_a = np.array([expected[0] for expected in state_pops[:,0]])
+            #print(state_pop_a)
+
         # 2 different approaches here, can norm by state_pop_a (sum of weights in a)
         # but since 2 state system, could also use 1 - state_pop_b since all not in b are in a
         flux_ab = flux_ab / state_pop_a
@@ -499,23 +512,23 @@ class Kinetics:
 ######################
 ### 1d oapdt plots ###
 ######################
-fig, ax = plt.subplots()
-# systems = ["2kod_v00", "lo_pH_v00", "150end_v00"]
-#systems = ["2kod_v00"]
-systems = ["2kod_v00", "4F_v00", "7F_v00"]
-#names = ["2kod WT", "Low pH", "150-end"]
-#names = ["From WE"]
-for i in range(len(systems)):
-    #k = Kinetics(scheme=f"gt2500oapdt_gt70c2/{systems[i]}", state=1, label=names[i], ax=ax)
-    k = Kinetics(scheme=f"oapdt_c2_2dgrid/{systems[i]}/2500oapdt_70c2", state=1, label=systems[i], ax=ax)
-    k.plot_rate()
-    # k = Kinetics(scheme=f"gt2500oapdt_gt65c2/{systems[i]}", state=1, label=names[i], ax=ax)
-    # k.plot_rate()
-k.plot_exp_vals(f_range=True)
-plt.legend()
-plt.tight_layout()
-#plt.ylim(0, 1000)
-plt.show()
+# fig, ax = plt.subplots()
+# # systems = ["2kod_v00", "lo_pH_v00", "150end_v00"]
+# #systems = ["2kod_v00"]
+# systems = ["2kod_v00", "4F_v00", "7F_v00"]
+# #names = ["2kod WT", "Low pH", "150-end"]
+# #names = ["From WE"]
+# for i in range(len(systems)):
+#     #k = Kinetics(scheme=f"gt2500oapdt_gt70c2/{systems[i]}", state=1, label=names[i], ax=ax)
+#     k = Kinetics(scheme=f"oapdt_c2_2dgrid/{systems[i]}/2500oapdt_70c2", state=0, label=systems[i], ax=ax)
+#     k.plot_rate()
+#     # k = Kinetics(scheme=f"gt2500oapdt_gt65c2/{systems[i]}", state=1, label=names[i], ax=ax)
+#     # k.plot_rate()
+# k.plot_exp_vals(f_range=True)
+# plt.legend()
+# plt.tight_layout()
+# #plt.ylim(0, 1000)
+# plt.show()
 #fig.savefig("figures/wt_only_2500oapdt_70c2.png", dpi=300, transparent=True)
 
 ############################
@@ -578,3 +591,12 @@ plt.show()
 # plt.tight_layout()
 # plt.show()
 # fig.savefig("figures/wt_lo_150end_2500oapdt_70c2.png", dpi=300, transparent=True)
+
+#######################
+### oamax c2 plots  ###
+#######################
+k = Kinetics(scheme=f"oamax_c2_2dgrid/WT_v00/54oamax_75c2", state=1, statepop="assign")
+k.plot_rate()
+k.plot_exp_vals(f_range=True)
+plt.tight_layout()
+plt.show()
