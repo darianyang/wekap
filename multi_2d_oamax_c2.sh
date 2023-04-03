@@ -7,14 +7,14 @@
 SYSTEMS=(WT_v00)
 
 # $3 in kinetics pipeline
-WEST_DIR=oapdt_c2_2dgrid
+WEST_DIR=oamax_c2_2dgrid
 
 for SYS in ${SYSTEMS[@]} ; do 
     #for C2 in {66..72} ; do
-    for C2 in {70..70} ; do
+    for C2 in {70..78} ; do
         #WEST_DIR=2kod_oa_${C2}c2
     # o_angle
-    for ANGLE in {50..50} ; do
+    for ANGLE in {50..55} ; do
         bash kinetics_pipeline_2d_oamax.sh $ANGLE $SYS $WEST_DIR $C2
         wait
     done
