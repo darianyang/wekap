@@ -7,8 +7,9 @@
 # Run in a directory with target west.h5 file
 # currently configured to run kinetics for a 2D scheme with 2 aux values
 
-AUX_A="pcoord"
-AUX_B="c2_angle"
+AUX_A="o_angle_m1"
+AUX_B="o_angle_m2"
+AUX_C="c2_angle"
 
 TS_DEF=$1
 SYSTEM=$2
@@ -24,7 +25,7 @@ SCHEME="$WEST_DIR/${SYSTEM}/${TS_DEF}oamax_${C2}c2"
 
 # make scheme dir and fill with current pipeline run file
 mkdir -pv $SCHEME
-cp -v kinetics_pipeline_2d_oamax.sh $SCHEME
+cp -v kinetics_pipeline_3d.sh $SCHEME
 cd $SCHEME
 
 # define bins and states with yaml files
@@ -33,21 +34,30 @@ cat << EOF > BINS
 bins:
     type: RectilinearBinMapper
     # add buffer region: strict starting state definition
-    boundaries: [[0.0, 45.0, ${TS_DEF}, 'inf'], 
-                 [0.0, 65.0, ${C2}, 'inf']]
+    boundaries: [[0.0, 50.0, ${TS_DEF}, 'inf'], 
+                 [0.0, 50.0, ${TS_DEF}, 'inf'],
+                 [0.0, 65.0, ${C2}, 'inf'],
+                ]
 EOF
 cat << EOF > STATES
 ---
 states:
   - label: a
     coords:
-      - [25, 50]
+      - [25, 25, 50]
 
   - label: b
     coords:
-      - [65, 100]
-      - []  
+      - [65, 25, 100]
 
+  - label: c
+    coords:
+      - [25, 65, 100]
+
+  - label: bc
+    coords:
+      - [65, 25, 100]
+      - [25, 65, 100]
 EOF
 
 # create module.py file to process 1D or 2D scheme
@@ -74,10 +84,23 @@ def pull_data_2d(n_iter, iter_group):
     auxdata2 = iter_group['auxdata']['${AUX_B}'][...]
     data = numpy.dstack((auxdata1, auxdata2))
     return data
+
+def pull_data_3d(n_iter, iter_group):
+    '''
+    This function reshapes 3 auxiliary datasets for each iteration and returns it.
+    '''
+    # special for pcoord
+    #auxdata1 = iter_group['${AUX_A}'][...]
+
+    auxdata1 = iter_group['auxdata']['${AUX_A}'][...]
+    auxdata2 = iter_group['auxdata']['${AUX_B}'][...]
+    auxdata3 = iter_group['auxdata']['${AUX_C}'][...]
+    data = numpy.dstack((auxdata1, auxdata2, auxdata3))
+    return data
 EOF
 
 # run w_assign to assign macrostates based off of defined BINS and STATES
-w_assign -W $WDIR/$WEST --bins-from-file BINS --states-from-file STATES -o assign.h5 --construct-dataset module.pull_data_2d --serial &&
+w_assign -W $WDIR/$WEST --bins-from-file BINS --states-from-file STATES -o assign.h5 --construct-dataset module.pull_data_3d --serial &&
 echo "    w_assign finished: assign.h5 file created in $SCHEME directory"
 
 # run w_direct to then calculate multiple flux values and rate constants
