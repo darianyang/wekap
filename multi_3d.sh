@@ -2,9 +2,9 @@
 # run multiple kinetics analysis pipelines
 
 #SYSTEMS=(WT_v00)
-#SYSTEMS=(WT_v01 WT_v02 WT_v03 WT_v04 4F_v00 7F_v00)
-#SYSTEMS=(WT_v01 WT_v02 WT_v03 WT_v04)
-SYSTEMS=(4F_v00 7F_v00)
+#SYSTEMS=(WT_v00 WT_v01 WT_v02 WT_v03 WT_v04 4F_v00 7F_v00)
+SYSTEMS=(WT_v00 WT_v01 WT_v02 WT_v03 WT_v04)
+#SYSTEMS=(4F_v00 7F_v00)
 
 # $3 in kinetics pipeline
 WEST_DIR=oa1_oa2_c2
