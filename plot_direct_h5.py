@@ -40,22 +40,25 @@ import numpy as np
 import matplotlib.pyplot as plt
 import h5py
 
-from scipy.signal import savgol_filter
+from scipy.stats import hmean
+#from scipy.signal import savgol_filter
 
 plt.style.use("/Users/darian/github/wedap/wedap/styles/default.mplstyle")
+#plt.style.use("/Users/darian/github/wedap/styles/poster.mplstyle")
 
 # TODO: function to make 4 panel plot
     # Plot of P_A, P_B, rate_AB, rate_BA, all as function of WE iteration
 
+# TODO: transition this to CLI program like mdap and wedap (eventually maybe make mkap)
 class Kinetics:
 
-    def __init__(self, min_state=None, max_state=None, scheme=None, prefix=None, statepop="direct",
-                 tau=10**-10, state=1, label=None, units="rates", ax=None, savefig=False):
+    def __init__(self, h5="direct.h5", min_state=None, max_state=None, prefix=None, statepop="direct",
+                 tau=10**-10, state=1, label=None, units="rates", ax=None, savefig=False, color=None):
         """ TODO
         Parameters
         ----------
-        scheme : str
-            Scheme/directory for the direct.h5 file.
+        h5 : str
+            Name of output file from WESTPA w_direct or w_ipa, e.g. `direct.h5`
         tau : float
             The resampling interval of the WE simualtion.
             This should be in seconds, default 100ps = 100 * 10^-12 = 10^-10
@@ -72,13 +75,19 @@ class Kinetics:
         savefig : bool
             Wether or not to save the figure to a png.
         """
-        self.scheme = scheme
+        # read in direct.h5 file
+        self.direct_h5 = h5py.File(h5, "r")
+        # temp solution for getting assign.h5, eventually can just get rid of it
+        # since I don't think the color/labeled population is as useful
+        self.assign_h5 = h5py.File(h5[:-9] + "assign.h5", "r")
+
         self.prefix = prefix
         self.tau = tau
         self.state = state
         self.label = label
         self.units = units
         self.statepop = statepop
+        self.color = color
 
         self.min_state = min_state
         self.max_state = max_state
@@ -101,17 +110,17 @@ class Kinetics:
     def extract_rate(self):
         """
         Get the raw rate array from one direct.h5 file.
+        
+        Returns
+        -------
+        rate_ab, ci_lb_ab, ci_ub_ab
         """
-        print(self.scheme)
-        # read in direct.h5 file
-        h5 = h5py.File(f"{self.scheme}/direct.h5", "r")
-        assign_h5 = h5py.File(f"{self.scheme}/assign.h5", "r")
 
         # flux evolution dataset from cumulative evolution mode:
         # When calculating time evolution of rate estimates, 
         # ``cumulative`` evaluates rates over windows starting with --start-iter and 
         # getting progressively wider to --stop-iter by steps of --step-iter.
-        fluxes = np.array(h5["target_flux_evolution"])
+        fluxes = np.array(self.direct_h5["target_flux_evolution"])
 
         # conditional fluxes are macrostate to macrostate
         # 2 dimensions: [(0 -> 0, 0 -> 1), 
@@ -119,7 +128,7 @@ class Kinetics:
         # I want 0 -> 1
         #fluxes = np.array(h5["conditional_flux_evolution"])[:,:,1]
 
-        # third column (expected) of the state (A/0 or B/1) flux dataset (flux into state b = 1)
+        # third column (expected) of the state (A(0) or B(1)) flux dataset (flux into state b = 1)
         flux_ab = np.array([expected[2] for expected in fluxes[:,self.state]])
         # CIs in rate (s^-1) format (divided by tau)
         ci_lb_ab = np.array([expected[3] for expected in fluxes[:,self.state]]) * (1/self.tau)
@@ -127,23 +136,27 @@ class Kinetics:
 
         if self.statepop == "direct":
             # divide k_AB by P_A for equilibrium rate correction (AB and BA steady states)
-            state_pops = np.array(h5["state_pop_evolution"])
+            state_pops = np.array(self.direct_h5["state_pop_evolution"])
             # state A = label 0, state B = label 1
             state_pop_a = np.array([expected[2] for expected in state_pops[:,0]])
             #state_pop_b = np.array([expected[2] for expected in state_pops[:,1]])
         elif self.statepop == "assign":
             # divide k_AB by P_A for equilibrium rate correction (AB and BA steady states)
-            state_pops = np.array(assign_h5["labeled_populations"])
+            state_pops = np.array(self.assign_h5["labeled_populations"])
             # state A = label 0, state B = label 1
             state_pop_a = np.array([expected[0] for expected in state_pops[:,0]])
             #print(state_pop_a)
 
+        # TODO: update to be a state assignment attr
         # norm by state pop A if calculating A --> B
         if self.state == 1:
             state_pop = state_pop_a
         # norm by state pop B if calculating B --> A
         elif self.state == 0:
             state_pop = 1 - state_pop_a
+        # TODO: temp fix
+        else:
+            state_pop = state_pop_a
 
         # 2 different approaches here, can norm by state_pop_a (sum of weights in a)
         # but since 2 state system, could also use 1 - state_pop_b since all not in b are in a
@@ -181,8 +194,9 @@ class Kinetics:
             #ax.fill_between(iterations, mfpt_ab - (1/ci_lb_ab), mfpt_ab + (1/ci_ub_ab), alpha=0.5)
             self.ax.set_ylabel("MFPT ($s$)")
         elif self.units == "rates":
-            self.ax.plot(iterations, rate_ab, label=self.label)
-            self.ax.fill_between(iterations, rate_ab - ci_lb_ab, rate_ab + ci_ub_ab, alpha=0.5)
+            self.ax.plot(iterations, rate_ab, color=self.color)#, label=self.label)
+            self.ax.fill_between(iterations, rate_ab - ci_lb_ab, rate_ab + ci_ub_ab, alpha=0.5,
+                                 label=self.label, color=self.color)
             self.ax.set_ylabel("Rate Constant ($s^{-1}$)")
 
         if moltime:
@@ -199,11 +213,8 @@ class Kinetics:
         """
         Plot the state populations
         """
-        # read in direct.h5 file
-        h5 = h5py.File(f"{self.scheme}/direct.h5", "r")
-
         # divide k_AB by P_A for equilibrium rate correction (AB and BA steady states)
-        state_pops = np.array(h5["state_pop_evolution"])
+        state_pops = np.array(self.direct_h5["state_pop_evolution"])
         # state A = label 0, state B = label 1
         state_pop_a = np.array([expected[2] for expected in state_pops[:,0]])
         state_pop_b = np.array([expected[2] for expected in state_pops[:,1]])
@@ -219,41 +230,77 @@ class Kinetics:
 
         return state_pop_a, state_pop_b
 
-    def plot_exp_vals(self, ax=None, f_range=False):
+    def plot_exp_vals(self, ax=None, f_range=False, d2d1=False, f_range_all=False):
         """
         f_range : bool
             Set to True to use mark 25-67 s^-1 as the k_D1D2 rate.
+        d2d1 : bool
+            Set to True to also include k_D2D1.
         """
         if ax is None:
             ax = self.ax
         if self.units == "rates":
-            if f_range:
-                # DTY 19F rates of 25-67 for k_D1D2
-                ax.axhspan(25, 67, alpha=0.25, color="grey", label="NMR k$_{D1D2}$")
+            if f_range_all:
+                # ax.axhline(60, alpha=1, color="tab:orange", label="4F k$_{D1D2}$", ls="--")
+                # ax.axhline(25, alpha=1, color="tab:green", label="7F k$_{D1D2}$", ls="--")
+                ax.axhline(60, alpha=1, color="tab:red", ls="--")
+                ax.axhline(25, alpha=1, color="tab:green", ls="--")
+            elif f_range:
+                # DTY 19F rates of 25-60 for k_D1D2
+                ax.axhspan(25, 60, alpha=0.25, color="grey", label="NMR k$_{D1D2}$")
+                if d2d1:
+                    ax.axhspan(135, 179, alpha=0.25, color="tan", label="NMR k$_{D2D1}$")
             else:
                 # D1-->D2 ~ 20-50, D2-->D1 ~ 100-150
                 ax.axhline(150, color="k", ls="--", label="k$_{D2D1}$")
-                ax.axhline(25, color="red", ls="--", label="k$_{D1D2}$")
+                if d2d1:
+                    ax.axhline(25, color="red", ls="--", label="k$_{D1D2}$")
         elif self.units == "mfpts":
             # converted to mfpt = 1 / rate
             ax.axhline(1/150, color="k", ls="--", label="MFPT$_{D2D1}$")
-            ax.axhline(1/25, color="red", ls="--", label="MFPT$_{D1D2}$")
+            if d2d1:
+                ax.axhline(1/25, color="red", ls="--", label="MFPT$_{D1D2}$")
         else:
             raise ValueError(f"You put {self.units} for unit, which must be `mfpts` or `rates`.") 
 
+class KineticsMulti(Kinetics):
     # TODO: make this update scheme more automatically
-    def plot_multi_def_rates(self, ver="v00", def_subplot=None):
-        ### get rates for multiple state definitions (WE c2x 4b)
+    # TODO: prob best to convert to child class for multiple direct.h5 files
+        # or is there a better way here? should think about this
+
+    def __init__(self, h5s=["direct.h5"], labels=None, tau=10**-10, state=1, units="rates", 
+                 ax=None, savefig=False):
+        """
+        For multiple direct.h5 files.
+
+        Parameters
+        ----------
+        h5 : list or strs
+            List of multiple direct.h5 files.
+        labels : list of strs
+            List of labels cooresponding to each direct.h5 file.
+        """
+        super().__init__(tau=tau, state=state, units=units, ax=ax, savefig=savefig)
+        self.direct_h5s = h5s
+        self.labels = labels
+        if ax is None:
+            self.fig, self.ax = plt.subplots()
+        else:
+            self.ax = ax
+            self.fig = plt.gcf()
+
+    def plot_multi_def_rates(self, def_subplot=None):
+        """
+        Show individual rate plots for multiple state definitions.
+        """
         final_rates = []
-        ogscheme = self.scheme
-        for angle in self.states:
-            self.scheme = f"{ogscheme}/{self.prefix}{angle}_{ver}"
-            self.label = f"> {angle}°"
-            rates = self.plot_rate(title=f"2KOD {ver}")
+        for i, direct_h5 in enumerate(self.direct_h5s):
+            self.h5 = direct_h5
+            if self.labels:
+                self.label = self.labels[i]
+            rates = self.plot_rate()
             # add 2 item list: angle | final rate value
             final_rates.append(rates[-1])
-
-        self.plot_exp_vals()
 
         plt.legend(loc="center left", bbox_to_anchor=(1.03, 0.5), frameon=False)
         #plt.yscale("symlog", subs=[2, 3, 4, 5, 6, 7, 8, 9])
@@ -268,15 +315,9 @@ class Kinetics:
             self.plot_exp_vals(ax2)
             ax2.tick_params(colors="grey")
         plt.yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
-
         #self.ax.set_ylim(10**-9, 10**10)
 
-        self.fig.tight_layout()
-        if self.savefig:
-            plt.savefig(f"figures/{ogscheme}_{self.prefix}_{ver}multi_state_rates.png", 
-                        dpi=300, transparent=True)
-
-    def plot_std_error_rate_reps(self, iterations=500, reps=3, def_subplot=None, title=None):
+    def plot_std_error_rate_reps(self, iterations=500, reps=3, def_subplot=None):
         """
         ### get rates with std errors for multiple state definitions
         Make a plot of multiple replicates and std err for each tstate def
@@ -353,13 +394,6 @@ class Kinetics:
 
         self.ax.set_ylabel("Rate Constant ($s^{-1}$)")
         self.ax.set_xlabel(r"WE Iteration ($\tau$=100ps)")
-        if title:
-            self.ax.set_title(title)
-
-        self.fig.tight_layout()
-        if self.savefig:
-            plt.savefig(f"figures/{ogscheme}_{self.prefix}_{reps}reps_{iterations}i_avg_std.png", 
-                        dpi=300, transparent=True)
 
         return final_rate_scalers
 
@@ -604,11 +638,102 @@ class Kinetics:
 ### oamax c2 plots  ###
 #######################
 # TODO: run some ssWE, need a good tstate
+# fig, ax = plt.subplots()
+# k = Kinetics(scheme=f"oamax_c2_2dgrid_2/WT_v00/51oamax_76c2", state=1, statepop="direct", ax=ax)
+# k.plot_rate()
+# # k = Kinetics(scheme=f"oamax_c2_2dgrid_2/WT_v00/51oamax_76c2", state=0, statepop="direct", ax=ax)
+# # k.plot_rate()
+# #k2 = Kinetics(scheme=f"oamax_c2_2dgrid/WT_v00/52oamax_76c2", state=0, statepop="direct", ax=ax)
+# #k2.plot_rate()
+# k.plot_exp_vals(f_range=True, ax=ax)
+# #plt.legend()
+# plt.tight_layout()
+# plt.show()
+
+#######################
+### oamax c2 plots  ###
+#######################
+def hmean_stderr(multi_k):
+    """
+    From: The Standard Errors of the Geometric and Harmonic Means 
+          and Their Application to Index Numbers
+          Author(s): Nilan Norris
+          Source: The Annals of Mathematical Statistics , 
+                  Dec., 1940, Vol. 11, No. 4 (Dec., 1940), pp. 445-448
+
+    s_H = (1/alpha^2)(s_(1/x)/sqrt(n-1))
+    alpha = 1 / H
+    s_(1/x) = stdev(1/x)
+                  
+    Parameters
+    ----------
+    multi_k : 2darray
+        Array of n arrays.
+
+    Returns
+    -------
+    hmeans : 1darray
+        Harmonic means.
+    s_H : 1darray
+        Standard error of harmonic means.
+    """
+    #print(len(multi_k))
+    hmeans = hmean(multi_k, axis=0)
+    #print(hmeans.shape)
+    alpha = np.reciprocal(hmeans)
+    #print(alpha.shape)
+    std_recip = np.std(np.reciprocal(multi_k), axis=0)
+    #print(std_recip.shape)
+    s_H = (1 / (alpha**2)) * (std_recip / np.sqrt(len(multi_k) - 1))
+    #print(s_H.shape)
+
+    return hmeans, s_H
+
 fig, ax = plt.subplots()
-k = Kinetics(scheme=f"oamax_c2_2dgrid/WT_v00/55oamax_78c2", state=1, statepop="direct", ax=ax)
-k.plot_rate()
-k2 = Kinetics(scheme=f"oamax_c2_2dgrid/WT_v00/55oamax_78c2", state=0, statepop="direct", ax=ax)
-k2.plot_rate()
-k.plot_exp_vals(f_range=True, ax=ax)
+# k = Kinetics(scheme=f"oa1_oa2_c2/WT_v00/60oamax_72c2", state=3, statepop="direct", ax=ax)
+# k.plot_rate()
+
+multi_k = []
+
+# calc and append the 1st item which is the rates
+for i in range(5):
+    k = Kinetics(f"oa1_oa2_c2/WT_v0{i}/55oa_72c2/direct.h5", state=1, ax=ax)
+    multi_k.append(k.extract_rate()[0])
+# harmonic mean
+multi_k_avg, multi_k_stderr = hmean_stderr(multi_k)
+# arithmetic mean
+#multi_k_avg = np.average(multi_k, axis=0)
+#multi_k_std = np.std(multi_k, axis=0)
+#multi_k_stderr = multi_k_std / np.sqrt(len(multi_k))
+iterations = np.arange(0, len(multi_k_avg), 1)
+# multiply by tau (ps)
+iterations *= 100
+# convert to ns
+iterations = np.divide(iterations, 1000)
+plt.plot(iterations, multi_k_avg)
+plt.fill_between(iterations, multi_k_avg - multi_k_stderr, 
+                 multi_k_avg + multi_k_stderr, alpha=0.5, label="WT")
+#print(np.average(multi_k, axis=0).shape)
+print("WT AVG and STDERR: ", multi_k_avg[-1], multi_k_stderr[-1])
+
+# 19F
+k = Kinetics("oa1_oa2_c2/4F_v00/55oa_72c2/direct.h5", state=1, statepop="direct", ax=ax, label="4F", color="tab:red")
+print("4F AVG: ", k.plot_rate()[-1])
+# CIs
+# print(k.extract_rate()[1][-1])
+#print(k.extract_rate()[2][-1])
+k = Kinetics("oa1_oa2_c2/7F_v00/55oa_72c2/direct.h5", state=1, statepop="direct", ax=ax, label="7F", color="tab:green")
+print("7F AVG: ", k.plot_rate()[-1])
+#print(k.extract_rate()[2][-1])
+
+# multi class test
+# k = KineticsMulti([f"oa1_oa2_c2/WT_v0{i}/55oa_72c2/direct.h5" for i in range(5)], state=1, ax=ax)
+# k.plot_multi_def_rates()
+
+k.plot_exp_vals(f_range_all=True, ax=ax)
+plt.legend(loc=4, ncol=3)
+#ax.set_yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
+plt.ylim(0,5000)
 plt.tight_layout()
 plt.show()
+#plt.savefig("figures/updated_wt5_4f_7f.png", dpi=600, transparent=True)
