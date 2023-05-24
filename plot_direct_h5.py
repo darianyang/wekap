@@ -700,15 +700,15 @@ for i in range(5):
     k = Kinetics(f"oa1_oa2_c2/WT_v0{i}/55oa_72c2/direct.h5", state=1, ax=ax)
     multi_k.append(k.extract_rate()[0])
 # harmonic mean
-multi_k_avg, multi_k_stderr = hmean_stderr(multi_k)
+#multi_k_avg, multi_k_stderr = hmean_stderr(multi_k)
 # hmean and error from bayesian bootstrapping
-multi_k_avg = hmean(multi_k)
+#multi_k_avg = hmean(multi_k)
 from error.bootstrap import bayboot_multi
-multi_k_stderr = bayboot_multi(multi_k, hmean)
+multi_k_stderr = bayboot_multi(multi_k)
 #multi_k_stderr = bayboot_multi(multi_k)
 
 # arithmetic mean
-# multi_k_avg = np.average(multi_k, axis=0)
+multi_k_avg = np.average(multi_k, axis=0)
 # multi_k_std = np.std(multi_k, axis=0)
 #multi_k_stderr = multi_k_std / np.sqrt(len(multi_k))
 iterations = np.arange(0, len(multi_k_avg), 1)
