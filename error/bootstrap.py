@@ -207,6 +207,33 @@ def bayboot(X, statistic=None, n_replications=10000, resample_size=100, alpha=0.
             smallest_window = window
     return smallest_window[1], smallest_window[0]
 
+def bayboot_multi(rates_multi, statistic=None, repeat=10000):
+    """
+    Calculate the credibility regions of multiple timepoints.
+    Input `rates_multi` array should have n_replicate rows and
+    n_timepoints columns.
+
+    Parameters
+    ----------
+    rates_multi : 2darray
+        Rates for multiple replicates at multiple timepoints.
+    repeat : int
+        n-fold bayesian bootstrapping.
+    
+    Returns
+    -------
+    CRs : 2darray
+        Calculated min and max CRs for n_replicates at each timepoint.
+        n_timepoints rows and 2 columns (min CR and max CR).
+    """
+    if isinstance(rates_multi, list):
+        rates_multi = np.array(rates_multi)
+    # CRs will be 2 columns (min and max) and n_frames rows
+    CRs = np.zeros((rates_multi.shape[1], 2))
+    # loop each timepoint, so each set of n_replicate rates, must transpose
+    for i, rep_rates in enumerate(tqdm(rates_multi.T)):
+        CRs[i,:] = bayboot(rep_rates, statistic=statistic, n_replications=repeat)
+    return CRs
 
 if __name__ == "__main__":
     # time the run
@@ -214,8 +241,8 @@ if __name__ == "__main__":
     start = timeit.default_timer()
 
     # check the updated numpy version works
-    #rates = [0.02, 0.005, 0.033]
-    rates = np.random.sample(500)
+    rates = [0.02, 0.005, 0.033]
+    #rates = np.random.sample(500)
     print(get_CR_bm(rates, 10000))
 
     stop = timeit.default_timer()
@@ -256,3 +283,8 @@ if __name__ == "__main__":
 
     # posterior_samples = bayesian_bootstrap(rates, hmean, 10000, 100)
     # print(highest_density_interval(posterior_samples))
+
+
+    # how to make compatible with 2D?
+    # a = np.random.sample((5,5))
+    # bayboot(a)

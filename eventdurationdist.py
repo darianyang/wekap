@@ -137,7 +137,8 @@ class DurationHistogram(object):
 
 def main():
 
-    scheme='20-100conWE_lt32C2'
+    #scheme='20-100conWE_lt32C2'
+    scheme = 'oa1_oa2_c2/WT_v00/55oa_72c2'
     pathlist = [f'{scheme}/direct.h5']
     h = DurationHistogram()
     h.from_list(pathlist, correction=True, fstate=1, lastiter=500, binwidth=10)

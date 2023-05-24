@@ -701,9 +701,15 @@ for i in range(5):
     multi_k.append(k.extract_rate()[0])
 # harmonic mean
 multi_k_avg, multi_k_stderr = hmean_stderr(multi_k)
+# hmean and error from bayesian bootstrapping
+multi_k_avg = hmean(multi_k)
+from error.bootstrap import bayboot_multi
+multi_k_stderr = bayboot_multi(multi_k, hmean)
+#multi_k_stderr = bayboot_multi(multi_k)
+
 # arithmetic mean
-#multi_k_avg = np.average(multi_k, axis=0)
-#multi_k_std = np.std(multi_k, axis=0)
+# multi_k_avg = np.average(multi_k, axis=0)
+# multi_k_std = np.std(multi_k, axis=0)
 #multi_k_stderr = multi_k_std / np.sqrt(len(multi_k))
 iterations = np.arange(0, len(multi_k_avg), 1)
 # multiply by tau (ps)
@@ -711,8 +717,10 @@ iterations *= 100
 # convert to ns
 iterations = np.divide(iterations, 1000)
 plt.plot(iterations, multi_k_avg)
-plt.fill_between(iterations, multi_k_avg - multi_k_stderr, 
-                 multi_k_avg + multi_k_stderr, alpha=0.5, label="WT")
+# plt.fill_between(iterations, multi_k_avg - multi_k_stderr, 
+#                  multi_k_avg + multi_k_stderr, alpha=0.5, label="WT")
+plt.fill_between(iterations, multi_k_avg - multi_k_stderr[:,0], 
+                 multi_k_avg + multi_k_stderr[:,1], alpha=0.5, label="WT")
 #print(np.average(multi_k, axis=0).shape)
 print("WT AVG and STDERR: ", multi_k_avg[-1], multi_k_stderr[-1])
 
@@ -733,7 +741,7 @@ print("7F AVG: ", k.plot_rate()[-1])
 k.plot_exp_vals(f_range_all=True, ax=ax)
 plt.legend(loc=4, ncol=3)
 #ax.set_yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
-plt.ylim(0,5000)
+#plt.ylim(0,5000)
 plt.tight_layout()
 plt.show()
 #plt.savefig("figures/updated_wt5_4f_7f.png", dpi=600, transparent=True)
