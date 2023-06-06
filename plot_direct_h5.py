@@ -41,6 +41,7 @@ import matplotlib.pyplot as plt
 import h5py
 
 from scipy.stats import hmean
+from scipy.stats.mstats import gmean
 #from scipy.signal import savgol_filter
 
 plt.style.use("/Users/darian/github/wedap/wedap/styles/default.mplstyle")
@@ -704,7 +705,7 @@ for i in range(5):
 # hmean and error from bayesian bootstrapping
 #multi_k_avg = hmean(multi_k)
 from error.bootstrap import bayboot_multi
-multi_k_stderr = bayboot_multi(multi_k)
+multi_k_stderr = bayboot_multi(multi_k, repeat=1000)
 #multi_k_stderr = bayboot_multi(multi_k)
 
 # arithmetic mean
@@ -720,18 +721,30 @@ plt.plot(iterations, multi_k_avg)
 # plt.fill_between(iterations, multi_k_avg - multi_k_stderr, 
 #                  multi_k_avg + multi_k_stderr, alpha=0.5, label="WT")
 plt.fill_between(iterations, multi_k_avg - multi_k_stderr[:,0], 
-                 multi_k_avg + multi_k_stderr[:,1], alpha=0.5, label="WT")
+                 multi_k_avg + multi_k_stderr[:,1], alpha=0.5, label="AMEAN")
 #print(np.average(multi_k, axis=0).shape)
-print("WT AVG and STDERR: ", multi_k_avg[-1], multi_k_stderr[-1])
+#print("WT AVG and STDERR: ", multi_k_avg[-1], multi_k_stderr[-1])
+
+# comparing means
+multi_k_avg = gmean(multi_k, axis=0)
+multi_k_stderr = bayboot_multi(multi_k, gmean, repeat=1000)
+plt.plot(iterations, multi_k_avg)
+plt.fill_between(iterations, multi_k_avg - multi_k_stderr[:,0], 
+                 multi_k_avg + multi_k_stderr[:,1], alpha=0.5, label="GMEAN")
+multi_k_avg = hmean(multi_k, axis=0)
+multi_k_stderr = bayboot_multi(multi_k, hmean, repeat=1000)
+plt.plot(iterations, multi_k_avg)
+plt.fill_between(iterations, multi_k_avg - multi_k_stderr[:,0], 
+                 multi_k_avg + multi_k_stderr[:,1], alpha=0.5, label="HMEAN")
 
 # 19F
-k = Kinetics("oa1_oa2_c2/4F_v00/55oa_72c2/direct.h5", state=1, statepop="direct", ax=ax, label="4F", color="tab:red")
-print("4F AVG: ", k.plot_rate()[-1])
+# k = Kinetics("oa1_oa2_c2/4F_v00/55oa_72c2/direct.h5", state=1, statepop="direct", ax=ax, label="4F", color="tab:red")
+# print("4F AVG: ", k.plot_rate()[-1])
 # CIs
 # print(k.extract_rate()[1][-1])
 #print(k.extract_rate()[2][-1])
-k = Kinetics("oa1_oa2_c2/7F_v00/55oa_72c2/direct.h5", state=1, statepop="direct", ax=ax, label="7F", color="tab:green")
-print("7F AVG: ", k.plot_rate()[-1])
+# k = Kinetics("oa1_oa2_c2/7F_v00/55oa_72c2/direct.h5", state=1, statepop="direct", ax=ax, label="7F", color="tab:green")
+# print("7F AVG: ", k.plot_rate()[-1])
 #print(k.extract_rate()[2][-1])
 
 # multi class test
@@ -740,8 +753,10 @@ print("7F AVG: ", k.plot_rate()[-1])
 
 k.plot_exp_vals(f_range_all=True, ax=ax)
 plt.legend(loc=4, ncol=3)
-#ax.set_yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
+ax.set_yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
 #plt.ylim(0,5000)
+plt.xlabel("Molecular Time (ns)")
+plt.ylabel("Rate Constant (s$^{-1}$)")
 plt.tight_layout()
-plt.show()
-#plt.savefig("figures/updated_wt5_4f_7f.png", dpi=600, transparent=True)
+#plt.show()
+plt.savefig("figures/wt_mean_comp.png", dpi=300, transparent=True)

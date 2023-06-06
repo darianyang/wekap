@@ -24,16 +24,16 @@ CRs = bayboot_multi(rates, repeat=100)
 plt.plot(means, label="ameans")
 plt.fill_between([i for i in range(0,rates.shape[1])], means-CRs[:,0], means+CRs[:,1], alpha=0.2)
 
-# hmeans
-means = hmean(rates)
-CRs = bayboot_multi(rates, hmean, 100)
-plt.plot(means, label="hmeans")
-plt.fill_between([i for i in range(0,rates.shape[1])], means-CRs[:,0], means+CRs[:,1], alpha=0.2)
-
 # gmeans
 means = gmean(rates)
 CRs = bayboot_multi(rates, gmean, 100)
 plt.plot(means, label="gmeans")
+plt.fill_between([i for i in range(0,rates.shape[1])], means-CRs[:,0], means+CRs[:,1], alpha=0.2)
+
+# hmeans
+means = hmean(rates)
+CRs = bayboot_multi(rates, hmean, 100)
+plt.plot(means, label="hmeans")
 plt.fill_between([i for i in range(0,rates.shape[1])], means-CRs[:,0], means+CRs[:,1], alpha=0.2)
 
 # plotting
