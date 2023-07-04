@@ -54,7 +54,7 @@ plt.style.use("/Users/darian/github/wedap/wedap/styles/default.mplstyle")
 class Kinetics:
 
     def __init__(self, h5="direct.h5", min_state=None, max_state=None, prefix=None, statepop="direct",
-                 tau=10**-10, state=1, label=None, units="rates", ax=None, savefig=False, color=None):
+                 tau=100e-12, state=1, label=None, units="rates", ax=None, savefig=False, color=None):
         """ TODO
         Parameters
         ----------
@@ -62,7 +62,7 @@ class Kinetics:
             Name of output file from WESTPA w_direct or w_ipa, e.g. `direct.h5`
         tau : float
             The resampling interval of the WE simualtion.
-            This should be in seconds, default 100ps = 100 * 10^-12 = 10^-10
+            This should be in seconds, default 100ps = 100 * 10^-12 (s).
         state : int
             State for flux calculations (flux into `state`), 0 = A and 1 = B.
         label : str
@@ -244,7 +244,9 @@ class Kinetics:
             if f_range_all:
                 # ax.axhline(60, alpha=1, color="tab:orange", label="4F k$_{D1D2}$", ls="--")
                 # ax.axhline(25, alpha=1, color="tab:green", label="7F k$_{D1D2}$", ls="--")
-                ax.axhline(60, alpha=1, color="tab:red", ls="--")
+                # ax.axhline(60, alpha=1, color="tab:red", ls="--")
+                # ax.axhline(25, alpha=1, color="tab:green", ls="--")
+                ax.axhline(60, alpha=1, color="tab:orange", ls="--")
                 ax.axhline(25, alpha=1, color="tab:green", ls="--")
             elif f_range:
                 # DTY 19F rates of 25-60 for k_D1D2
@@ -354,7 +356,7 @@ class KineticsMulti(Kinetics):
             self.ax.plot(avg, label=f"< {angle}°")
             self.ax.fill_between(np.arange(0, iterations, 1), avg - err, avg + err, alpha=0.25)
 
-        self.plot_exp_vals()
+        self.plot_exp_vals(self.ax)
         plt.legend(loc="center left", bbox_to_anchor=(1.03, 0.5), frameon=False)
         # plt.legend(plot, [f"<{i}°" for i in states],
         #                 loc="center left", bbox_to_anchor=(1.03, 0.5), frameon=False)
@@ -422,7 +424,7 @@ class KineticsMulti(Kinetics):
         #ax.set_xlabel("Angle State Definition", fontsize=16, labelpad=4)
         ax.set_xlabel("Angle State Definition")
         self.ax = ax
-        self.plot_exp_vals()
+        self.plot_exp_vals(self.ax)
         #plt.yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
 
         x = self.states
@@ -694,48 +696,62 @@ fig, ax = plt.subplots()
 # k = Kinetics(scheme=f"oa1_oa2_c2/WT_v00/60oamax_72c2", state=3, statepop="direct", ax=ax)
 # k.plot_rate()
 
-multi_k = []
+def plot_multi_run(sys="WT", ax=None):
+    """
+    Plot multiple runs of a system.
+    Use bayesian bootstrapping for error estimates.
+    """
+    if ax is None:
+        fig, ax = plt.subplots()
+    else:
+        fig = plt.gcf()
 
-# calc and append the 1st item which is the rates
-for i in range(5):
-    k = Kinetics(f"oa1_oa2_c2/WT_v0{i}/55oa_72c2/direct.h5", state=1, ax=ax)
-    multi_k.append(k.extract_rate()[0])
-# harmonic mean
-#multi_k_avg, multi_k_stderr = hmean_stderr(multi_k)
-# hmean and error from bayesian bootstrapping
-#multi_k_avg = hmean(multi_k)
-from error.bootstrap import bayboot_multi
-multi_k_stderr = bayboot_multi(multi_k, repeat=1000)
-#multi_k_stderr = bayboot_multi(multi_k)
+    # multi rate list per replicate
+    multi_k = []
 
-# arithmetic mean
-multi_k_avg = np.average(multi_k, axis=0)
-# multi_k_std = np.std(multi_k, axis=0)
-#multi_k_stderr = multi_k_std / np.sqrt(len(multi_k))
-iterations = np.arange(0, len(multi_k_avg), 1)
-# multiply by tau (ps)
-iterations *= 100
-# convert to ns
-iterations = np.divide(iterations, 1000)
-plt.plot(iterations, multi_k_avg)
-# plt.fill_between(iterations, multi_k_avg - multi_k_stderr, 
-#                  multi_k_avg + multi_k_stderr, alpha=0.5, label="WT")
-plt.fill_between(iterations, multi_k_avg - multi_k_stderr[:,0], 
-                 multi_k_avg + multi_k_stderr[:,1], alpha=0.5, label="AMEAN")
-#print(np.average(multi_k, axis=0).shape)
-#print("WT AVG and STDERR: ", multi_k_avg[-1], multi_k_stderr[-1])
+    # calc and append the 1st item which is the rates
+    for i in range(5):
+        k = Kinetics(f"oa1_oa2_c2/{sys}_v0{i}/54oa_72c2/direct.h5", state=1, ax=ax)
+        multi_k.append(k.extract_rate()[0])
+    # harmonic mean
+    #multi_k_avg, multi_k_stderr = hmean_stderr(multi_k)
+    # hmean and error from bayesian bootstrapping
+    #multi_k_avg = hmean(multi_k)
+    from error.bootstrap import bayboot_multi
+    multi_k_stderr = bayboot_multi(multi_k, repeat=1000)
+    #multi_k_stderr = bayboot_multi(multi_k)
+
+    # arithmetic mean
+    multi_k_avg = np.average(multi_k, axis=0)
+    # multi_k_std = np.std(multi_k, axis=0)
+    #multi_k_stderr = multi_k_std / np.sqrt(len(multi_k))
+    iterations = np.arange(0, len(multi_k_avg), 1)
+    # multiply by tau (ps)
+    iterations *= 100
+    # convert to ns
+    iterations = np.divide(iterations, 1000)
+    ax.plot(iterations, multi_k_avg)
+    # plt.fill_between(iterations, multi_k_avg - multi_k_stderr, 
+    #                  multi_k_avg + multi_k_stderr, alpha=0.5, label="WT")
+    ax.fill_between(iterations, multi_k_avg - multi_k_stderr[:,0], 
+                    multi_k_avg + multi_k_stderr[:,1], alpha=0.5, label=sys)
+    #print(np.average(multi_k, axis=0).shape)
+    #print("WT AVG and STDERR: ", multi_k_avg[-1], multi_k_stderr[-1])
+
+    #print(multi_k_avg[-1])
+    return k, multi_k_avg[-1]
 
 # comparing means
-multi_k_avg = gmean(multi_k, axis=0)
-multi_k_stderr = bayboot_multi(multi_k, gmean, repeat=1000)
-plt.plot(iterations, multi_k_avg)
-plt.fill_between(iterations, multi_k_avg - multi_k_stderr[:,0], 
-                 multi_k_avg + multi_k_stderr[:,1], alpha=0.5, label="GMEAN")
-multi_k_avg = hmean(multi_k, axis=0)
-multi_k_stderr = bayboot_multi(multi_k, hmean, repeat=1000)
-plt.plot(iterations, multi_k_avg)
-plt.fill_between(iterations, multi_k_avg - multi_k_stderr[:,0], 
-                 multi_k_avg + multi_k_stderr[:,1], alpha=0.5, label="HMEAN")
+# multi_k_avg = gmean(multi_k, axis=0)
+# multi_k_stderr = bayboot_multi(multi_k, gmean, repeat=1000)
+# plt.plot(iterations, multi_k_avg)
+# plt.fill_between(iterations, multi_k_avg - multi_k_stderr[:,0], 
+#                  multi_k_avg + multi_k_stderr[:,1], alpha=0.5, label="GMEAN")
+# multi_k_avg = hmean(multi_k, axis=0)
+# multi_k_stderr = bayboot_multi(multi_k, hmean, repeat=1000)
+# plt.plot(iterations, multi_k_avg)
+# plt.fill_between(iterations, multi_k_avg - multi_k_stderr[:,0], 
+#                  multi_k_avg + multi_k_stderr[:,1], alpha=0.5, label="HMEAN")
 
 # 19F
 # k = Kinetics("oa1_oa2_c2/4F_v00/55oa_72c2/direct.h5", state=1, statepop="direct", ax=ax, label="4F", color="tab:red")
@@ -751,12 +767,15 @@ plt.fill_between(iterations, multi_k_avg - multi_k_stderr[:,0],
 # k = KineticsMulti([f"oa1_oa2_c2/WT_v0{i}/55oa_72c2/direct.h5" for i in range(5)], state=1, ax=ax)
 # k.plot_multi_def_rates()
 
+k, _ = plot_multi_run("WT", ax=ax)
+k, _ = plot_multi_run("4F", ax=ax)
+k, _ = plot_multi_run("7F", ax=ax)
 k.plot_exp_vals(f_range_all=True, ax=ax)
-plt.legend(loc=4, ncol=3)
+plt.legend(loc=4, ncol=1)
 ax.set_yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
 #plt.ylim(0,5000)
 plt.xlabel("Molecular Time (ns)")
 plt.ylabel("Rate Constant (s$^{-1}$)")
 plt.tight_layout()
-#plt.show()
-plt.savefig("figures/wt_mean_comp.png", dpi=300, transparent=True)
+plt.show()
+#plt.savefig("figures/wt_mean_comp.png", dpi=300, transparent=True)
