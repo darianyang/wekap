@@ -1,0 +1,18 @@
+---
+states:
+  - label: a
+    coords:
+      - [25, 25]
+
+#  - label: b
+#    coords:
+#      - [65, 25, 100]
+
+#  - label: c
+#    coords:
+#      - [25, 65, 100]
+
+  - label: bc
+    coords:
+      - [5, 25]
+      - [25, 5]
