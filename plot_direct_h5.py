@@ -696,7 +696,7 @@ fig, ax = plt.subplots()
 # k = Kinetics(scheme=f"oa1_oa2_c2/WT_v00/60oamax_72c2", state=3, statepop="direct", ax=ax)
 # k.plot_rate()
 
-def plot_multi_run(sys="WT", ax=None):
+def plot_multi_run(sys="WT", ax=None, oa="56"):
     """
     Plot multiple runs of a system.
     Use bayesian bootstrapping for error estimates.
@@ -711,7 +711,8 @@ def plot_multi_run(sys="WT", ax=None):
 
     # calc and append the 1st item which is the rates
     for i in range(5):
-        k = Kinetics(f"oa1_oa2_c2/{sys}_v0{i}/54oa_72c2/direct.h5", state=1, ax=ax)
+        k = Kinetics(f"oa1_oa2_c2/{sys}_v0{i}/{oa}oa_72c2/direct.h5", state=1, ax=ax)
+        #k = Kinetics(f"oa1_oa2/{sys}_v0{i}/{oa}oa/direct.h5", state=1, ax=ax)
         multi_k.append(k.extract_rate()[0])
     # harmonic mean
     #multi_k_avg, multi_k_stderr = hmean_stderr(multi_k)
@@ -719,12 +720,15 @@ def plot_multi_run(sys="WT", ax=None):
     #multi_k_avg = hmean(multi_k)
     from error.bootstrap import bayboot_multi
     multi_k_stderr = bayboot_multi(multi_k, repeat=1000)
-    #multi_k_stderr = bayboot_multi(multi_k)
+    print(multi_k_stderr.shape)
 
     # arithmetic mean
     multi_k_avg = np.average(multi_k, axis=0)
-    # multi_k_std = np.std(multi_k, axis=0)
+    #multi_k_std = np.std(multi_k, axis=0)
     #multi_k_stderr = multi_k_std / np.sqrt(len(multi_k))
+    #multi_k_stderr = np.rot90(np.vstack((multi_k_stderr,multi_k_stderr)))
+    #print(multi_k_stderr.shape)
+
     iterations = np.arange(0, len(multi_k_avg), 1)
     # multiply by tau (ps)
     iterations *= 100
@@ -739,7 +743,7 @@ def plot_multi_run(sys="WT", ax=None):
     #print("WT AVG and STDERR: ", multi_k_avg[-1], multi_k_stderr[-1])
 
     #print(multi_k_avg[-1])
-    return k, multi_k_avg[-1]
+    return k, multi_k_avg[-1], multi_k_stderr[-1], multi_k
 
 # comparing means
 # multi_k_avg = gmean(multi_k, axis=0)
@@ -766,16 +770,44 @@ def plot_multi_run(sys="WT", ax=None):
 # multi class test
 # k = KineticsMulti([f"oa1_oa2_c2/WT_v0{i}/55oa_72c2/direct.h5" for i in range(5)], state=1, ax=ax)
 # k.plot_multi_def_rates()
+# finals = []
+# for i in range(54, 59):
+#     k, f = plot_multi_run("WT", ax=ax, oa=i)
+#     finals.append(f)
 
-k, _ = plot_multi_run("WT", ax=ax)
-k, _ = plot_multi_run("4F", ax=ax)
-k, _ = plot_multi_run("7F", ax=ax)
-k.plot_exp_vals(f_range_all=True, ax=ax)
-plt.legend(loc=4, ncol=1)
-ax.set_yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
-#plt.ylim(0,5000)
-plt.xlabel("Molecular Time (ns)")
-plt.ylabel("Rate Constant (s$^{-1}$)")
+angle = 56
+#k, f = plot_multi_run("WT", ax=ax, oa=angle)
+k, f1, e1, mk1 = plot_multi_run("WT", ax=ax, oa=angle)
+k, f2, e2, mk2 = plot_multi_run("4F", ax=ax, oa=angle)
+k, f3, e3, mk3 = plot_multi_run("7F", ax=ax, oa=angle)
+# k.plot_exp_vals(f_range_all=True, ax=ax)
+# plt.legend(loc=4, ncol=1)
+# ax.set_yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
+# #plt.ylim(0,5000)
+# plt.xlabel("Molecular Time (ns)")
+# plt.ylabel("Rate Constant (s$^{-1}$)")
+errors = np.flip(np.rot90(np.vstack((e1, [0,0], e2, [3.34, 3.34], [0,0], e3, [1.11, 1.11])), k=-1), axis=1)
+#print(np.rot90(errors))
+print(errors)
+fig, ax = plt.subplots(figsize=(10,5))
+ax.bar(["WT-WE", "", "4F-WE", "NMR", "    ", "7F-WE", " NMR "], [f1, 0, f2, 60, 0, f3, 25], 
+       color=["tab:blue", "k", "tab:orange", "grey", "k", "tab:green", "grey"],
+       yerr=errors, capsize=10)
+ax.set_ylabel("Rate Constant (s$^{-1}$)")
+
+def plot_mk_scatter(mk, ax, label="WT-WE"):
+    mk = [i[-1] for i in mk]
+    print(mk)
+    ax.scatter([label for _ in range(0,5)], mk, color="k")
+plot_mk_scatter(mk1, ax, "WT-WE")
+plot_mk_scatter(mk2, ax, "4F-WE")
+plot_mk_scatter(mk3, ax, "7F-WE")
+
+#ax.axhline(60, alpha=1, color="tab:orange", ls="--")
+#ax.axhline(25, alpha=1, color="tab:green", ls="--")
+plt.yscale("log")
+#plt.xticks(rotation=30, ha='right')
 plt.tight_layout()
 plt.show()
 #plt.savefig("figures/wt_mean_comp.png", dpi=300, transparent=True)
+#plt.savefig("figures/bar_all.png", dpi=300, transparent=True)
