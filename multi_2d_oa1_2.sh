@@ -13,7 +13,7 @@ WEST_DIR=oa1_oa2
 
 for SYS in ${SYSTEMS[@]} ; do 
     # o_angle 
-    for ANGLE in {10..10} ; do
+    for ANGLE in {1..9} ; do
         bash kinetics_pipeline_2d_oa1_2.sh $ANGLE $SYS $WEST_DIR
         wait
     done
