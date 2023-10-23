@@ -99,6 +99,23 @@ class Kinetics:
             self.states = None
             self.n_states = 1
 
+        if self.statepop == "direct":
+            # divide k_AB by P_A for equilibrium rate correction (AB and BA steady states)
+            self.state_pops = np.array(self.direct_h5["state_pop_evolution"])
+            # state A = label 0, state B = label 1
+            self.state_pop_a = np.array([expected[2] for expected in self.state_pops[:,0]])
+            self.state_pop_b = np.array([expected[2] for expected in self.state_pops[:,1]])
+        elif self.statepop == "assign":
+            # divide k_AB by P_A for equilibrium rate correction (AB and BA steady states)
+            self.state_pops = np.array(self.assign_h5["labeled_populations"])
+            # state A = label 0, state B = label 1
+            #self.state_pop_a = np.array([expected[0] for expected in self.state_pops[:,0]])
+            #self.state_pop_a = np.sum(self.state_pops[:,0], axis=1)
+            #print(state_pop_a)
+            #np.sum(self.state_pop_a)
+            self.state_pop_a = np.sum(self.state_pops[:,0], axis=1)
+            self.state_pop_b = np.sum(self.state_pops[:,1], axis=1)
+
         # create new fig or plot onto existing
         if ax is None:
             self.fig, self.ax = plt.subplots()
@@ -135,29 +152,24 @@ class Kinetics:
         ci_lb_ab = np.array([expected[3] for expected in fluxes[:,self.state]]) * (1/self.tau)
         ci_ub_ab = np.array([expected[4] for expected in fluxes[:,self.state]]) * (1/self.tau)
 
-        if self.statepop == "direct":
-            # divide k_AB by P_A for equilibrium rate correction (AB and BA steady states)
-            state_pops = np.array(self.direct_h5["state_pop_evolution"])
-            # state A = label 0, state B = label 1
-            state_pop_a = np.array([expected[2] for expected in state_pops[:,0]])
-            #state_pop_b = np.array([expected[2] for expected in state_pops[:,1]])
-        elif self.statepop == "assign":
-            # divide k_AB by P_A for equilibrium rate correction (AB and BA steady states)
-            state_pops = np.array(self.assign_h5["labeled_populations"])
-            # state A = label 0, state B = label 1
-            state_pop_a = np.array([expected[0] for expected in state_pops[:,0]])
-            #print(state_pop_a)
-
         # TODO: update to be a state assignment attr
         # norm by state pop A if calculating A --> B
+        # if self.state == 1:
+        #     state_pop = self.state_pop_a
+        # # norm by state pop B if calculating B --> A
+        # elif self.state == 0:
+        #     state_pop = 1 - self.state_pop_a
+        # # TODO: temp fix
+        # else:
+        #     state_pop = self.state_pop_a
+
+        # assign the state of target flux flow
         if self.state == 1:
-            state_pop = state_pop_a
-        # norm by state pop B if calculating B --> A
+            state_pop = self.state_pop_a
         elif self.state == 0:
-            state_pop = 1 - state_pop_a
-        # TODO: temp fix
+            state_pop = self.state_pop_b
         else:
-            state_pop = state_pop_a
+            print("Currently only support state 0 or state 1.")
 
         # 2 different approaches here, can norm by state_pop_a (sum of weights in a)
         # but since 2 state system, could also use 1 - state_pop_b since all not in b are in a
@@ -214,22 +226,24 @@ class Kinetics:
         """
         Plot the state populations
         """
-        # divide k_AB by P_A for equilibrium rate correction (AB and BA steady states)
-        state_pops = np.array(self.direct_h5["state_pop_evolution"])
+        # # divide k_AB by P_A for equilibrium rate correction (AB and BA steady states)
+        # state_pops = np.array(self.direct_h5["state_pop_evolution"])
         # state A = label 0, state B = label 1
-        state_pop_a = np.array([expected[2] for expected in state_pops[:,0]])
-        state_pop_b = np.array([expected[2] for expected in state_pops[:,1]])
+        #state_pop_a = np.array([expected[2] for expected in self.state_pops[:,0]])
+        #state_pop_b = np.array([expected[2] for expected in self.state_pops[:,1]])
+        # state_pop_a = np.sum(self.state_pops[:,0], axis=1)
+        # state_pop_b = np.sum(self.state_pops[:,1], axis=1)
 
         # WE iterations
-        iterations = np.arange(0, len(state_pop_a), 1)
+        iterations = np.arange(0, len(self.state_pop_a), 1)
 
         # plot both state population evolutions
-        self.ax.plot(iterations, state_pop_a, label="State A")
-        self.ax.plot(iterations, state_pop_b, label="State B")
+        self.ax.plot(iterations, self.state_pop_a, label="State A")
+        self.ax.plot(iterations, self.state_pop_b, label="State B")
         self.ax.set_xlabel(r"WE Iteration ($\tau$=100ps)")
         self.ax.set_ylabel("State Population")
 
-        return state_pop_a, state_pop_b
+        #return self.state_pop_a, self.state_pop_b
 
     def plot_exp_vals(self, ax=None, f_range=False, d2d1=False, f_range_all=False):
         """
@@ -695,6 +709,17 @@ def hmean_stderr(multi_k):
 fig, ax = plt.subplots()
 # k = Kinetics(scheme=f"oa1_oa2_c2/WT_v00/60oamax_72c2", state=3, statepop="direct", ax=ax)
 # k.plot_rate()
+# k = Kinetics("1a43_oamin_oa12/3d_v00/45oa/direct.h5", state=1, statepop="direct", ax=ax)
+# k.plot_rate()
+# k.plot_exp_vals()
+# k = Kinetics("1a43_oamin_oa12/3d_v01/45oa/direct.h5", state=1, statepop="direct", ax=ax)
+# k.plot_rate()
+
+# TODO: these could be the args for the CLI/GUI, along with arg for error preference
+k = Kinetics("2kod_4dmin_v00/direct.h5", state=1, statepop="assign", ax=ax)
+k.plot_rate()
+#k.plot_exp_vals()
+#k.plot_statepop()
 
 def plot_multi_run(sys="WT", ax=None, oa="56"):
     """
@@ -775,6 +800,7 @@ def plot_multi_run(sys="WT", ax=None, oa="56"):
 #     k, f = plot_multi_run("WT", ax=ax, oa=i)
 #     finals.append(f)
 
+"""
 angle = 56
 #k, f = plot_multi_run("WT", ax=ax, oa=angle)
 k, f1, e1, mk1 = plot_multi_run("WT", ax=ax, oa=angle)
@@ -803,13 +829,14 @@ def plot_mk_scatter(mk, ax, label="WT-WE"):
 plot_mk_scatter(mk1, ax, "WT-WE")
 plot_mk_scatter(mk2, ax, "4F-WE")
 plot_mk_scatter(mk3, ax, "7F-WE")
+"""
 
 #ax.axhline(60, alpha=1, color="tab:orange", ls="--")
 #ax.axhline(25, alpha=1, color="tab:green", ls="--")
-plt.yscale("log")
-plt.xticks(fontweight="bold")
+#plt.yscale("log")
+#plt.xticks(fontweight="bold")
 #plt.xticks(rotation=30, ha='right')
 plt.tight_layout()
-#plt.show()
+plt.show()
 #plt.savefig("figures/wt_mean_comp.png", dpi=300, transparent=True)
-plt.savefig("figures/bar_all_poster.png", dpi=300, transparent=True)
+#plt.savefig("figures/bar_all_poster.png", dpi=300, transparent=True)
