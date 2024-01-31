@@ -22,19 +22,19 @@ means = np.average(rates, axis=0)
 # calculate CRs at each timepoint
 CRs = bayboot_multi(rates, repeat=100)
 plt.plot(means, label="ameans")
-plt.fill_between([i for i in range(0,rates.shape[1])], means-CRs[:,0], means+CRs[:,1], alpha=0.2)
+plt.fill_between([i for i in range(0,rates.shape[1])], CRs[:,0], CRs[:,1], alpha=0.2)
 
 # gmeans
 means = gmean(rates)
 CRs = bayboot_multi(rates, gmean, 100)
 plt.plot(means, label="gmeans")
-plt.fill_between([i for i in range(0,rates.shape[1])], means-CRs[:,0], means+CRs[:,1], alpha=0.2)
+plt.fill_between([i for i in range(0,rates.shape[1])], CRs[:,0], CRs[:,1], alpha=0.2)
 
 # hmeans
 means = hmean(rates)
 CRs = bayboot_multi(rates, hmean, 100)
 plt.plot(means, label="hmeans")
-plt.fill_between([i for i in range(0,rates.shape[1])], means-CRs[:,0], means+CRs[:,1], alpha=0.2)
+plt.fill_between([i for i in range(0,rates.shape[1])], CRs[:,0], CRs[:,1], alpha=0.2)
 
 # plotting
 plt.yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
