@@ -736,7 +736,8 @@ def plot_multi_run(sys="WT", ax=None, oa="56"):
 
     # calc and append the 1st item which is the rates
     for i in range(5):
-        k = Kinetics(f"oa1_oa2_c2/{sys}_v0{i}/{oa}oa_72c2/direct.h5", state=1, ax=ax)
+        k = Kinetics(f"D1D2_lt_16oa/{sys}_v0{i}/{oa}oa/direct.h5", state=1, ax=ax)
+        #k = Kinetics(f"oa1_oa2_c2/{sys}_v0{i}/{oa}oa_72c2/direct.h5", state=1, ax=ax)
         #k = Kinetics(f"oa1_oa2/{sys}_v0{i}/{oa}oa/direct.h5", state=1, ax=ax)
         multi_k.append(k.extract_rate()[0])
     # harmonic mean
@@ -800,8 +801,8 @@ def plot_multi_run(sys="WT", ax=None, oa="56"):
 #     k, f = plot_multi_run("WT", ax=ax, oa=i)
 #     finals.append(f)
 
-"""
-angle = 56
+
+angle = 12
 #k, f = plot_multi_run("WT", ax=ax, oa=angle)
 k, f1, e1, mk1 = plot_multi_run("WT", ax=ax, oa=angle)
 k, f2, e2, mk2 = plot_multi_run("4F", ax=ax, oa=angle)
@@ -829,7 +830,7 @@ def plot_mk_scatter(mk, ax, label="WT-WE"):
 plot_mk_scatter(mk1, ax, "WT-WE")
 plot_mk_scatter(mk2, ax, "4F-WE")
 plot_mk_scatter(mk3, ax, "7F-WE")
-"""
+
 
 #ax.axhline(60, alpha=1, color="tab:orange", ls="--")
 #ax.axhline(25, alpha=1, color="tab:green", ls="--")
