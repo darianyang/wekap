@@ -825,7 +825,7 @@ ax.set_yscale("log")
 fig, ax = plt.subplots(figsize=(12,5))
 ax.bar(["WT-eqWE", "WT-ssWE", "MSM", "4F-eqWE", "4F-NMR", "4F-NMRr", "WT-ssWEr", "MSMr"], 
        [f1,         1.5,        0.015,    f2,      60,       134,       173,        0.05], 
-       #color=["tab:blue", "k", "tab:orange", "grey", "k", "tab:green", "grey"],
+       color=["tab:blue", "tab:blue", "grey", "tab:orange", "magenta", "magenta", "tab:blue", "grey"],
        yerr=errors, capsize=10)
 ax.set_ylabel("Rate Constant (s$^{-1}$)")
 
