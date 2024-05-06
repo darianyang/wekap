@@ -807,14 +807,14 @@ angle = 12
 #k, f = plot_multi_run("WT", ax=ax, oa=angle)
 k, f1, e1, mk1 = plot_multi_run("WT", ax=ax, oa=angle, color="tab:blue")
 k, f2, e2, mk2 = plot_multi_run("4F", ax=ax, oa=angle, color="tab:orange")
-k, f3, e3, mk3 = plot_multi_run("7F", ax=ax, oa=angle, color="tab:green")
+#k, f3, e3, mk3 = plot_multi_run("7F", ax=ax, oa=angle, color="tab:green")
 # k.plot_exp_vals(f_range_all=True, ax=ax)
 # plt.legend(loc=4, ncol=1)
 # ax.set_yscale("log", subs=[2, 3, 4, 5, 6, 7, 8, 9])
 # #plt.ylim(0,5000)
 # plt.xlabel("Molecular Time (ns)")
 # plt.ylabel("Rate Constant (s$^{-1}$)")
-errors = np.flip(np.rot90(np.vstack((e1, [0,0], e2, [3.34, 3.34], [0,0], e3, [1.11, 1.11])), k=-1), axis=1)
+errors = np.flip(np.rot90(np.vstack((e1, [0,0], [0,0], e2, [3.34, 3.34], [8.26,8.26], [0,0], [0,0])), k=-1), axis=1)
 #print(np.rot90(errors))
 print(errors)
 ax.axhline(60, alpha=1, color="tab:orange", ls="--")
@@ -822,9 +822,10 @@ ax.axhline(25, alpha=1, color="tab:green", ls="--")
 ax.set_yscale("log")
 
 #fig, ax = plt.subplots(figsize=(10,5))
-fig, ax = plt.subplots(figsize=(7,5))
-ax.bar(["WT-WE", "", "4F-WE", "NMR", "    ", "7F-WE", " NMR "], [f1, 0, f2, 60, 0, f3, 25], 
-       color=["tab:blue", "k", "tab:orange", "grey", "k", "tab:green", "grey"],
+fig, ax = plt.subplots(figsize=(12,5))
+ax.bar(["WT-eqWE", "WT-ssWE", "MSM", "4F-eqWE", "4F-NMR", "4F-NMRr", "WT-ssWEr", "MSMr"], 
+       [f1,         1.5,        0.015,    f2,      60,       134,       173,        0.05], 
+       #color=["tab:blue", "k", "tab:orange", "grey", "k", "tab:green", "grey"],
        yerr=errors, capsize=10)
 ax.set_ylabel("Rate Constant (s$^{-1}$)")
 
@@ -832,15 +833,16 @@ def plot_mk_scatter(mk, ax, label="WT-WE"):
     mk = [i[-1] for i in mk]
     print(mk)
     ax.scatter([label for _ in range(5)], mk, color="k")
-plot_mk_scatter(mk1, ax, "WT-WE")
-plot_mk_scatter(mk2, ax, "4F-WE")
-plot_mk_scatter(mk3, ax, "7F-WE")
+plot_mk_scatter(mk1, ax, "WT-eqWE")
+plot_mk_scatter(mk2, ax, "4F-eqWE")
+#plot_mk_scatter(mk3, ax, "7F-WE")
 
 
 ax.set_yscale("log")
 #plt.xticks(fontweight="bold")
 #plt.xticks(rotation=30, ha='right')
 plt.tight_layout()
-plt.show()
+#plt.show()
 #plt.savefig("figures/wt_mean_comp.png", dpi=300, transparent=True)
 #plt.savefig("figures/bar_all_poster.png", dpi=300, transparent=True)
+plt.savefig("figures/05May2024_all_attempts_so_far.png", dpi=300, transparent=True)
